@@ -1,0 +1,101 @@
+# ============================================================================
+# Ultimate NetGuard AIO — .gitignore
+# Qt 5 / C++ / MinGW / Windows
+# ============================================================================
+
+# ─── Build Output ──────────────────────────────────────────────────────────
+build/
+release/
+debug/
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+*.lib
+*.a
+*.pdb
+*.ilk
+*.exp
+
+# ─── Qt Generated Files ───────────────────────────────────────────────────
+moc_*.cpp
+moc_*.h
+ui_*.h
+qrc_*.cpp
+*.moc
+Makefile
+Makefile.*
+.qmake.stash
+*.pro.user
+*.pro.user.*
+*.qbs.user
+*.qbs.user.*
+
+# ─── IDE Files ─────────────────────────────────────────────────────────────
+# Qt Creator
+*.autosave
+CMakeLists.txt.user
+
+# Visual Studio
+.vs/
+*.vcxproj
+*.vcxproj.*
+*.sln
+*.suo
+*.user
+*.ncb
+*.sdf
+*.opensdf
+*.VC.db
+*.VC.opendb
+ipch/
+
+# VS Code
+.vscode/
+
+# JetBrains (CLion)
+.idea/
+cmake-build-*/
+
+# ─── OS Files ──────────────────────────────────────────────────────────────
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.stackdump
+*.lnk
+
+# macOS (in case of cross-dev)
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+*.swp
+*.swo
+
+# ─── Project Specific ─────────────────────────────────────────────────────
+# History data (auto-generated at runtime)
+NetGuard_History.json
+
+# Backup copies
+*- Copy*
+*- Copy (*)*
+*.bak
+*.backup
+*.orig
+100src/
+
+# ─── Archives ──────────────────────────────────────────────────────────────
+*.zip
+*.7z
+*.rar
+*.tar.gz
+*.tar.bz2
+
+# ─── Logs ──────────────────────────────────────────────────────────────────
+*.log
