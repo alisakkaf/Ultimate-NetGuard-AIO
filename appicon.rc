@@ -1,0 +1,38 @@
+// appicon.rc — Windows resource script
+// Embeds the application icon, UAC manifest, and full VERSIONINFO metadata.
+
+#include "src/core/version.h"
+#include <windows.h>
+
+IDI_ICON1   ICON    "icons/app.ico"
+1           RT_MANIFEST     "app.manifest"
+
+// ─── VERSIONINFO — Displayed in File Properties → Details ───────────────────
+VS_VERSION_INFO VERSIONINFO
+    FILEVERSION     APP_VERSION_RC
+    PRODUCTVERSION  APP_VERSION_RC
+    FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
+    FILEFLAGS       0x0L
+    FILEOS          VOS_NT_WINDOWS32
+    FILETYPE        VFT_APP
+    FILESUBTYPE     VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "CompanyName",      APP_COMPANY
+            VALUE "FileDescription",  APP_DESCRIPTION
+            VALUE "FileVersion",      APP_VERSION_RC_STR
+            VALUE "InternalName",     APP_INTERNAL_NAME
+            VALUE "LegalCopyright",   APP_COPYRIGHT
+            VALUE "OriginalFilename", APP_ORIGINAL_NAME
+            VALUE "ProductName",      APP_NAME
+            VALUE "ProductVersion",   APP_VERSION_RC_STR
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0409, 1200
+    END
+END

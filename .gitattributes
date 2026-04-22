@@ -1,0 +1,45 @@
+# ============================================================================
+# Ultimate NetGuard AIO — .gitattributes
+# Ensures consistent line endings and correct file type detection on GitHub.
+# ============================================================================
+
+# ─── Default: Auto-detect ──────────────────────────────────────────────────
+* text=auto
+
+# ─── Source Code (LF on checkout) ──────────────────────────────────────────
+*.cpp text eol=lf linguist-language=C++
+*.h text eol=lf linguist-language=C++
+*.c text eol=lf linguist-language=C
+*.pro text eol=lf
+*.pri text eol=lf
+*.qrc text eol=lf linguist-language=XML
+*.ui text eol=lf linguist-language=XML
+*.rc text eol=lf
+*.manifest text eol=lf linguist-language=XML
+
+# ─── Documentation ─────────────────────────────────────────────────────────
+*.md text eol=lf linguist-documentation
+*.txt text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+LICENSE text eol=lf
+
+# ─── Binary Files (no conversion) ─────────────────────────────────────────
+*.ico binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.bmp binary
+*.exe binary
+*.dll binary
+*.zip binary
+*.7z binary
+
+# ─── Git LFS (for large binaries if needed) ───────────────────────────────
+# *.exe filter=lfs diff=lfs merge=lfs -text
+
+# ─── GitHub Linguist Overrides ─────────────────────────────────────────────
+# Ensure GitHub correctly detects this as a C++ project
+*.qss linguist-language=CSS
+src/Info/** linguist-documentation

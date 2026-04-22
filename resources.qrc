@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>icons/app.ico</file>
+        <file>icons/Ultimate_NetGuard_AIO.png</file>
+    </qresource>
+</RCC>
