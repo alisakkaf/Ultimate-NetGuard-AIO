@@ -1,12 +1,12 @@
 <div align="center">
 
-<img src="https://i.ibb.co/Z6TH9cYC/Ultimate-Net-Guard-AIO-Logo.png" alt="Ultimate NetGuard AIO" width="180" height="180">
+<img src="https://i.ibb.co/7tgJG3Y4/Ultimate-Net-Guard-AIO-Logo.png" alt="Ultimate NetGuard AIO" width="180" height="180">
 
 # 🛡️ Ultimate NetGuard AIO
 
 ### The Most Powerful Network & System Monitor for Windows — All In One
 
-[![Version](https://img.shields.io/badge/Version-1.0.0-2563EB.svg?style=for-the-badge)](https://github.com/alisakkaf/Ultimate-NetGuard-AIO/releases)
+[![Version](https://img.shields.io/badge/Version-1.1.0-2EA043.svg?style=for-the-badge)](https://github.com/alisakkaf/Ultimate-NetGuard-AIO/releases)
 [![Platform](https://img.shields.io/badge/Platform-Windows%207--11-0078D6.svg?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/alisakkaf/Ultimate-NetGuard-AIO)
 [![License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
 [![Qt](https://img.shields.io/badge/Qt-5.14.2-41CD52.svg?style=for-the-badge&logo=qt&logoColor=white)](https://www.qt.io/)
@@ -22,7 +22,7 @@
 
 ---
 
-![Featured Banner](https://i.ibb.co/hFDKzPzY/Net-Guard-AIO-Featured-Image.jpg)
+![Featured Banner](https://i.ibb.co/ZzpcRMD7/Net-Guard-AIO-Featured-Image.jpg)
 
 </div>
 
@@ -98,7 +98,7 @@ The application is designed for:
 | 🛡️ **Firewall Manager** | Windows Firewall COM API integration | Block/Allow, Whitelist Lockdown, Drag & Drop, Rule Import/Export |
 | 💻 **Hardware Monitor** | CPU, RAM, GPU, Disk monitoring | WMI + PDH, temperature sensors, circular gauges |
 | 📊 **Usage History** | Per-app daily bandwidth tracking | JSON persistence, CSV export, time filters |
-| 🖥️ **Taskbar Overlay** | Live speed widget on Windows taskbar | Transparent, customizable, hover popup |
+| 🖥️ **Taskbar Overlay** | Live hardware dashboard on Windows taskbar | CPU, RAM, GPU, Temps, Multi-GPU DXGI, Drag & Drop |
 | 🎨 **Theme System** | Dark & Light modes | Live toggle, full QSS coverage |
 | 🔔 **System Tray** | Activity indicator & quick controls | Dynamic icon, speed tooltip |
 | ⚙️ **Settings** | Comprehensive configuration | Startup, overlay customization, persistence |
@@ -109,61 +109,219 @@ The application is designed for:
 
 ---
 
+## 🆕 What's New in v1.1.0
+
+<div align="center">
+
+> **🚀 Taskbar Overlay 2.0 — Complete Overhaul**
+>
+> *Real-Time Hardware Intelligence · Multi-GPU Detection · Smart Auto-Layout · Drag & Drop Positioning*
+
+</div>
+
+### 🖥️ Real-Time Hardware Monitoring on Taskbar
+
+The taskbar overlay has been completely rebuilt from the ground up. It now supports **four independent hardware monitoring modules**, each controlled by its own toggle in **Settings → Taskbar Overlay Customization**:
+
+| Module | Icon | Color | Data Source | Description |
+|--------|------|-------|-------------|-------------|
+| **CPU Usage** | `C` | Amber `#FBBF24` | Windows PDH | Real-time processor utilization % |
+| **RAM Usage** | `R` | Emerald `#34D399` | `GlobalMemoryStatusEx()` | Live memory with 3 display formats |
+| **GPU Usage** | `G` | Orange `#FB923C` | WMI GPUEngine Counters | Per-GPU load with multi-adapter filtering |
+| **Temperature** | `T` | Red `#F87171` | ACPI + WMI Thermal Zones | Combined CPU°/GPU° (e.g., `72/65°`) |
+
+Hardware items are rendered in a **smart vertical-pair grid system**:
+
+```
+┌──────────────────────────────────────────────────────┐
+│  ↑ 1.2 MB/s  │  C 45%  │  G 32%  │  T 72/65°       │  ← Row 0
+│  ↓ 5.8 MB/s  │  R 12/16 GB  │                       │  ← Row 1
+└──────────────────────────────────────────────────────┘
+```
+
+### 🔍 Multi-GPU Auto-Detection & Selection (DXGI)
+
+- **DXGI-Based Enumeration** — Uses `CreateDXGIFactory()` + `IDXGIFactory::EnumAdapters()` to detect all installed GPUs by their **real hardware name**
+- **GPU Selection Combo Box** — Choose between `Auto (All GPUs Combined)` or individual GPUs (e.g., `Intel(R) UHD Graphics 630`, `NVIDIA GeForce RTX 3080`)
+- **WMI Adapter Filtering** — Filters by `phys_N_` keyword pattern for precise per-GPU monitoring
+- **Thread-Safe Updates** — GPU index changes protected by `QMutex`
+
+#### DXGI Detection Example
+```cpp
+// Real-world output examples:
+// Index 0: "Intel(R) UHD Graphics 630"
+// Index 1: "NVIDIA GeForce RTX 3080"
+// Index 2: "Microsoft Basic Render Driver"
+```
+
+#### WMI Adapter Filtering
+```
+WMI GPUEngine Name Format:
+"pid_1234_luid_0x00000000_0x0000ABCD_phys_1_eng_0_engtype_3D"
+                                          ↑
+                                    Adapter Index
+```
+
+### 📊 Flexible RAM Display Formats
+
+| Mode | Output Example | Best For |
+|------|---------------|----------|
+| **Percentage (%)** | `65%` | Quick glance, minimal space |
+| **Used / Total (MB)** | `12045/16384 MB` | Precise memory tracking |
+| **Used / Total (GB)** | `12/16 GB` | Balanced clarity (default) |
+
+Changing the display mode **instantly re-renders** the RAM label without waiting for the next hardware snapshot cycle.
+
+### 🖱️ Smart Drag & Drop Positioning
+
+- **Free-Form Placement** — Left-click and drag the overlay to any position on the taskbar
+- **Persistent Offsets** — Position preserved across app restarts, taskbar resizes, resolution & DPI changes
+- **Quick Reset** — New **🔄 Reset Position** action in right-click context menu
+
+### 💎 UI/UX Enhancements (v1.1)
+
+- **Protective Text Shadows** — `QGraphicsDropShadowEffect` on all labels guarantees 100% legibility over any taskbar background
+- **Dynamic Auto-Resizing (Smart Hug)** — No hardcoded widths; overlay perfectly hugs text content in real-time
+- **Pixel-Perfect Grid Spacing** — 4px icon-to-value gap, 8px inter-group gap, 0px vertical spacing
+- **Synchronized UI Scaling** — Font size changes trigger complete `setCustomStyle()` → `rebuildLayout()` → `adjustSize()` pipeline
+- **Enhanced Hover Stats Popup** — Now shows 5 rows: Download/Upload, Session Totals, CPU/RAM, GPU/RAM Detail, CPU Temp/GPU Temp
+
+### 💾 New Registry Settings (v1.1)
+
+| Registry Key | UI Widget | Type | Default | Description |
+|-------------|-----------|------|---------|-------------|
+| `Overlay/ShowCpu` | `chkOverlayCpu` | `bool` | `false` | Show CPU usage on overlay |
+| `Overlay/ShowRam` | `chkOverlayRam` | `bool` | `false` | Show RAM usage on overlay |
+| `Overlay/ShowGpu` | `chkOverlayGpu` | `bool` | `false` | Show GPU usage on overlay |
+| `Overlay/ShowTemps` | `chkOverlayTemps` | `bool` | `false` | Show temperatures on overlay |
+| `Overlay/RamDisplayMode` | `cmbOverlayRamFormat` | `int` | `2` | RAM format: 0=%, 1=MB, 2=GB |
+| `Overlay/GpuIndex` | `cmbOverlayGpuSelect` | `int` | `0` | GPU selection: 0=Auto, 1+=specific |
+
+### 🐛 Bug Fixes (v1.1)
+
+| Issue | Resolution |
+|-------|-----------|
+| **Context Menu Clipping** | Right-click `QMenu` now maps global coordinates strictly above the widget |
+| **Taskbar Icon Collision** | Dynamic shrink-to-fit margins + manual drag offset system |
+| **GPU Load Over-Reporting** | Now correctly filters by selected adapter when a specific GPU is chosen |
+| **RAM Label Jitter** | Eliminated with `adjustSize()` after every update |
+
+### 🏗️ Data Flow Architecture (v1.1)
+
+```
+┌─────────────────────┐    1 sec    ┌──────────────────────┐
+│  HardwareMonitor    │ ──────────→ │  HardwareSnapshot    │
+│  (Background Thread)│   emit      │  {cpu, ram, gpu,     │
+│                     │  snapshotReady │  temps, gpuName}   │
+└─────────────────────┘             └──────────┬───────────┘
+                                               │
+                    ┌──────────────────────────┼──────────────────────┐
+                    ↓                          ↓                      ↓
+          ┌─────────────────┐      ┌───────────────────┐   ┌─────────────────┐
+          │  MainWindow     │      │  TaskbarOverlay   │   │  HardwareWidget │
+          │  (Status Bar)   │      │  (Taskbar Widget) │   │  (Gauges Tab)   │
+          └─────────────────┘      └───────────────────┘   └─────────────────┘
+```
+
+### 📁 Files Changed (v1.1)
+
+| File | Type | Changes |
+|------|------|---------|
+| `src/ui/mainwindow.ui` | Qt Designer | Added `cmbOverlayRamFormat`, `cmbOverlayGpuSelect` and labels |
+| `src/hardware/hardwaremonitor.h` | C++ Header | Added `enumerateGpuNames()`, `setGpuIndex()`, `gpuName` in snapshot |
+| `src/hardware/hardwaremonitor.cpp` | C++ Source | DXGI GPU enumeration, GPU-filtered `queryGpuLoad()` |
+| `src/taskbar/taskbaroverlay.h` | C++ Header | Added `RamDisplayMode` enum, display mode methods |
+| `src/taskbar/taskbaroverlay.cpp` | C++ Source | RAM format switching, drag & drop, text shadows, dynamic layout |
+| `src/core/mainwindow.cpp` | C++ Source | New combo signals, GPU list population, new settings |
+| `UltimateNetGuard.pro` | qmake Project | Added `-ldxgi` to Windows system libraries |
+
+### 🔗 New Dependencies (v1.1)
+
+| Library | Purpose | Linkage |
+|---------|---------|---------|
+| `dxgi.lib` | DXGI GPU adapter enumeration | `-ldxgi` in `.pro` |
+
+### v1.1 Technology Stack
+
+| Component | Technology |
+|-----------|-----------|
+| GPU Enumeration | **DXGI** (`CreateDXGIFactory`, `IDXGIAdapter`) |
+| GPU Load | **WMI** (`Win32_PerfFormattedData_GPUPerformanceCounters_GPUEngine`) |
+| CPU Load | **PDH** (`\\Processor(_Total)\\% Processor Time`) |
+| RAM Usage | **Win32 API** (`GlobalMemoryStatusEx`) |
+| CPU Temperature | **WMI/ACPI** (`MSAcpi_ThermalZoneTemperature` + fallbacks) |
+| Settings Storage | **Windows Registry** via `QSettings` |
+| Thread Safety | **QMutex** for cross-thread GPU index updates |
+
+### 🔧 v1.1 Build Notes
+
+> **Important:** After pulling this update, you must regenerate the Makefile:
+>
+> ```bash
+> qmake UltimateNetGuard.pro
+> make clean
+> make -j$(nproc)
+> ```
+>
+> This is required because `UltimateNetGuard.pro` was modified to include the new `-ldxgi` library dependency.
+
+---
+
 ## 📸 Screenshots
 
 <div align="center">
 
 ### 🌑 Dark Theme — Main Interface
 
-![Dark Main](https://i.ibb.co/hFDKzPzY/Net-Guard-AIO-Featured-Image.jpg)
+![Dark Main](https://i.ibb.co/ZzpcRMD7/Net-Guard-AIO-Featured-Image.jpg)
 
 ---
 
 ### ☀️ Light Theme — Main Interface
 
-![Light Main](https://i.ibb.co/xqtvLxXw/Ultimate-Net-Guard-AIO-Light-main.png)
+![Light Main](https://i.ibb.co/ks4rySz3/Ultimate-Net-Guard-AIO-Light-main.png)
 
 ---
 
 ### 🌐 Network Traffic Monitor
 
-![Network Traffic](https://i.ibb.co/wNKGrf9C/nettraffic-ui.png)
+![Network Traffic](https://i.ibb.co/wrK05jxx/nettraffic-ui.png)
 
 ---
 
 ### 🛡️ Firewall Manager — Core Rules
 
-![Firewall Core](https://i.ibb.co/rKWjVnnf/firwall-netguard-core-rules-ui.png)
+![Firewall Core](https://i.ibb.co/XxDd4H9C/firwall-netguard-core-rules-ui.png)
 
 ---
 
 ### 🛡️ Firewall Manager — System Rules
 
-![Firewall System](https://i.ibb.co/r276bwTy/firwall-system-rules-ui.png)
+![Firewall System](https://i.ibb.co/wxkbyBD/firwall-system-rules-ui.png)
 
 ---
 
 ### 💻 Hardware Monitor
 
-![Hardware](https://i.ibb.co/5hghpyj1/hardware-ui.png)
+![Hardware](https://i.ibb.co/35KzbH3c/hardware-ui.png)
 
 ---
 
 ### 📊 Usage History
 
-![History](https://i.ibb.co/d4bRGzYF/history-ui.png)
+![History](https://i.ibb.co/vGGKy6k/history-ui.png)
 
 ---
 
 ### ⚙️ Settings Panel
 
-![Settings](https://i.ibb.co/VcMj5Bs8/setting-ui.png)
+![Settings](https://i.ibb.co/s7LSzDP/setting-ui.png)
 
 ---
 
 ### 🖥️ Taskbar Overlay Widget
 
-![Taskbar](https://i.ibb.co/8LMFvDqC/taskbar-overlay-ui.png)
+![Taskbar](https://i.ibb.co/gbpZDTLg/taskbar-overlay-ui.png)
 
 </div>
 
@@ -190,7 +348,7 @@ The application is designed for:
 ### Option 1: Download Pre-Built Release (Recommended)
 
 1. Go to the [Releases](https://github.com/alisakkaf/Ultimate-NetGuard-AIO/releases) page
-2. Download `UltimateNetGuard-v1.0.0-win32.zip`
+2. Download `UltimateNetGuard-v1.1.0-win32.zip`
 3. Extract to any folder
 4. Run `UltimateNetGuard.exe` as Administrator
 5. That's it — no installation required!
@@ -293,7 +451,9 @@ Ultimate_NetGuard_AIO/
 ├── appicon.rc                      # Windows resource script (VERSIONINFO + icon)
 ├── app.manifest                    # UAC manifest (requireAdministrator)
 ├── resources.qrc                   # Qt resource compilation file
-└── UltimateNetGuard.pro            # qmake project file
+├── UltimateNetGuard.pro            # qmake project file
+
+└── releases.md                     # Version release notes & changelog
 ```
 
 ### Dependency Graph
@@ -431,7 +591,7 @@ HardwareMonitor Thread (1-second loop)
     ├── collectPdh()        → CPU Load %, Disk Activity %
     ├── collectRam()        → Used/Total MB, Load %
     ├── collectNetwork()    → RX/TX bytes per second
-    ├── queryGpuLoad()      → GPU 3D engine utilization %
+    ├── queryGpuLoad()      → GPU 3D engine utilization % (per-adapter via DXGI index)
     └── collectTemperatures()
         ├── Disk Temp    ← MSFT_StorageReliabilityCounter (ROOT\Microsoft\Windows\Storage)
         ├── CPU Temp     ← MSAcpi_ThermalZoneTemperature (ROOT\WMI) [Kelvin→Celsius]
@@ -500,6 +660,12 @@ NetworkTreeModel (live data)
 | Overlay Opacity | QSettings | `overlayOpacity` |
 | Overlay Text Color | QSettings | `overlayTextColor` |
 | Overlay BG Color | QSettings | `overlayBgColor` |
+| Overlay Show CPU | QSettings (Registry) | `Overlay/ShowCpu` |
+| Overlay Show RAM | QSettings (Registry) | `Overlay/ShowRam` |
+| Overlay Show GPU | QSettings (Registry) | `Overlay/ShowGpu` |
+| Overlay Show Temps | QSettings (Registry) | `Overlay/ShowTemps` |
+| Overlay RAM Format | QSettings (Registry) | `Overlay/RamDisplayMode` |
+| Overlay GPU Index | QSettings (Registry) | `Overlay/GpuIndex` |
 
 ---
 
@@ -698,6 +864,7 @@ Ultimate NetGuard AIO ships with **6 professionally curated firewall rule profil
 | `SetWindowLongPtr` | `windows.h` | Window style modification |
 | `AdjustTokenPrivileges` | `advapi32.h` | Enable SeDebugPrivilege |
 | `IsUserAnAdmin` | `shlobj.h` | Admin privilege check |
+| `CreateDXGIFactory` / `EnumAdapters` | `dxgi.h` | GPU adapter enumeration & identification |
 
 </div>
 
