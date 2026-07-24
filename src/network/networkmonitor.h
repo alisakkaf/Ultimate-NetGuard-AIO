@@ -17,7 +17,7 @@
 
 struct AdapterInfo {
     QString ip;
-    QString ipv6; // ── [عربي] دعم الـ IPv6 ──
+    QString ipv6; // IPv6 support
     QString description;
     bool    hasGateway = false;
     quint32 index = 0;
@@ -63,7 +63,7 @@ private:
     QString getServiceNameFromPid(quint32 pid) const;
 
     QString m_adapterIP;
-    QString m_adapterIPv6; // ── [عربي] متغير لتخزين الـ IPv6 ──
+    QString m_adapterIPv6;
     quint32 m_adapterIndex = 0;
 
     std::atomic<bool> m_stopFlag{false};
