@@ -93,7 +93,8 @@ win32: LIBS += \
     -luser32 \
     -lgdi32 \
     -luuid \
-    -lshlwapi
+    -lshlwapi \
+    -ldxgi
 
 # ─── Compiler / preprocessor flags ──────────────────────────────────────────
 mingw {
