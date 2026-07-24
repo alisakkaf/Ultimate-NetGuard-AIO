@@ -4,6 +4,7 @@
  =============================================================================
 */
 #include "mainwindow.h"
+#include "qwinfunctions.h"
 #include "version.h"
 #include "qdebug.h"
 #include "ui_mainwindow.h"
@@ -17,6 +18,9 @@
 #include "taskbar/taskbaroverlay.h"
 
 #include <QCloseEvent>
+#include <windows.h>
+#include <shellapi.h>
+#include <QtWin>
 #include <QTimer>
 #include <QStyle>
 #include <QScreen>
@@ -60,7 +64,8 @@ MainWindow::MainWindow(QWidget *parent)
     loadSettings();
     initHistoryManager();
 
-    // ui->mainTabs->setCurrentIndex(0);
+    ui->mainTabs->setCurrentIndex(0);
+    ui->cmbOverlayRamFormat->setCurrentIndex(0);
 
 
     m_badgeTimer = new QTimer(this);
@@ -82,6 +87,22 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->spinOverlayOpacity, QOverload<int>::of(&QSpinBox::valueChanged), this, &MainWindow::applySettingsToOverlay);
     connect(ui->cmbOverlayTextColor, &QComboBox::currentTextChanged, this, &MainWindow::applySettingsToOverlay);
     connect(ui->cmbOverlayBgColor, &QComboBox::currentTextChanged, this, &MainWindow::applySettingsToOverlay);
+
+    connect(ui->chkOverlayCpu,   &QCheckBox::toggled, this, &MainWindow::applySettingsToOverlay);
+    connect(ui->chkOverlayRam,   &QCheckBox::toggled, this, &MainWindow::applySettingsToOverlay);
+    connect(ui->chkOverlayGpu,   &QCheckBox::toggled, this, &MainWindow::applySettingsToOverlay);
+    connect(ui->chkOverlayTemps, &QCheckBox::toggled, this, &MainWindow::applySettingsToOverlay);
+
+    connect(ui->cmbOverlayRamFormat, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::applySettingsToOverlay);
+    connect(ui->cmbOverlayGpuSelect, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::applySettingsToOverlay);
+
+    // ── Populate GPU combo with detected GPU names ──
+    {
+        QStringList gpuNames = m_hwWidget->monitor()->enumerateGpuNames();
+        for (const QString &name : gpuNames) {
+            ui->cmbOverlayGpuSelect->addItem(name);
+        }
+    }
 
     m_netWidget->autoStart();
 
@@ -166,6 +187,7 @@ void MainWindow::recordLiveTraffic()
         QModelIndex idxTx   = model->index(r, 5);
 
         QString appName = model->data(idxName, Qt::UserRole + 1).toString();
+        quint32 pid = model->data(idxName, Qt::UserRole).toUInt();
         if (appName.isEmpty()) continue;
 
         quint64 rxSpeed = model->data(idxRx, Qt::UserRole + 5).toULongLong();
@@ -174,14 +196,18 @@ void MainWindow::recordLiveTraffic()
         if (rxSpeed > 0 || txSpeed > 0) {
             m_historyData[today][appName].rxBytes += rxSpeed;
             m_historyData[today][appName].txBytes += txSpeed;
+            if (m_historyData[today][appName].exePath.isEmpty()) {
+                m_historyData[today][appName].exePath = m_netWidget->getExactProcessPath(pid, appName);
+            }
             dataChanged = true;
         }
 
-        // FIX: Extract QPixmap from QVariant correctly, as NetworkTreeModel returns a Pixmap, not an Icon.
         if (!m_iconCache.contains(appName)) {
             QVariant iconVar = model->data(idxName, Qt::DecorationRole);
             if (!iconVar.isNull() && iconVar.canConvert<QPixmap>()) {
                 m_iconCache.insert(appName, QIcon(iconVar.value<QPixmap>()));
+            } else if (!iconVar.isNull() && iconVar.canConvert<QIcon>()) {
+                m_iconCache.insert(appName, iconVar.value<QIcon>());
             }
         }
     }
@@ -217,6 +243,45 @@ void MainWindow::refreshHistoryUI()
 
     QIcon defaultAppIcon = qApp->style()->standardIcon(QStyle::SP_ComputerIcon);
 
+    auto getOrResolveIcon = [&](const QString &appName, const QString &exePath) -> QIcon {
+        if (m_iconCache.contains(appName) && !m_iconCache.value(appName).isNull()) {
+            return m_iconCache.value(appName);
+        }
+
+        QString targetPath = exePath;
+        if (targetPath.isEmpty()) {
+            wchar_t sysDir[MAX_PATH] = {};
+            GetSystemDirectoryW(sysDir, MAX_PATH);
+            QString fallback = QString::fromWCharArray(sysDir) + "\\" + appName;
+            if (QFileInfo::exists(fallback)) targetPath = fallback;
+        }
+
+        QIcon ico;
+        if (!targetPath.isEmpty() && QFileInfo::exists(targetPath)) {
+            SHFILEINFOW sfi = {};
+            if (SHGetFileInfoW(targetPath.toStdWString().c_str(), 0, &sfi, sizeof(sfi), SHGFI_ICON | SHGFI_SMALLICON)) {
+                if (sfi.hIcon) {
+                    ico = QIcon(QtWin::fromHICON(sfi.hIcon));
+                    DestroyIcon(sfi.hIcon);
+                }
+            }
+        }
+
+        if (ico.isNull()) {
+            SHFILEINFOW sfi = {};
+            if (SHGetFileInfoW(appName.toStdWString().c_str(), FILE_ATTRIBUTE_NORMAL, &sfi, sizeof(sfi), SHGFI_ICON | SHGFI_SMALLICON | SHGFI_USEFILEATTRIBUTES)) {
+                if (sfi.hIcon) {
+                    ico = QIcon(QtWin::fromHICON(sfi.hIcon));
+                    DestroyIcon(sfi.hIcon);
+                }
+            }
+        }
+
+        if (ico.isNull()) ico = defaultAppIcon;
+        m_iconCache.insert(appName, ico);
+        return ico;
+    };
+
     if (filterIdx == 0) {
         // Mode: TODAY -> Flat list of applications
         QMap<QString, DailyAppStat> todayStats;
@@ -246,7 +311,7 @@ void MainWindow::refreshHistoryUI()
         for (const auto &pair : sortedList) {
             QTreeWidgetItem *appItem = new QTreeWidgetItem(ui->treeHistory);
             appItem->setText(0, pair.first);
-            appItem->setIcon(0, m_iconCache.value(pair.first, defaultAppIcon));
+            appItem->setIcon(0, getOrResolveIcon(pair.first, pair.second.exePath));
             appItem->setText(1, fmtBytes(pair.second.rxBytes));
             appItem->setText(2, fmtBytes(pair.second.txBytes));
             appItem->setText(3, fmtBytes(pair.second.rxBytes + pair.second.txBytes));
@@ -297,7 +362,7 @@ void MainWindow::refreshHistoryUI()
             for (const auto &pair : sortedDailyList) {
                 QTreeWidgetItem *appItem = new QTreeWidgetItem(dateItem);
                 appItem->setText(0, pair.first);
-                appItem->setIcon(0, m_iconCache.value(pair.first, defaultAppIcon));
+                appItem->setIcon(0, getOrResolveIcon(pair.first, pair.second.exePath));
                 appItem->setText(1, fmtBytes(pair.second.rxBytes));
                 appItem->setText(2, fmtBytes(pair.second.txBytes));
                 appItem->setText(3, fmtBytes(pair.second.rxBytes + pair.second.txBytes));
@@ -326,7 +391,7 @@ void MainWindow::refreshHistoryUI()
         topApp[0] = topApp[0].toUpper();
         topApp = topApp.remove(".exe");
         ui->lblHistTopApp->setText(QString("%1\n%2").arg(topApp, fmtBytes(topAppTotal)));
-        ui->lblHistTopIcon->setPixmap(m_iconCache.value(iconAppName, defaultAppIcon).pixmap(35, 35));
+        ui->lblHistTopIcon->setPixmap(getOrResolveIcon(iconAppName, "").pixmap(35, 35));
     } else {
         ui->lblHistTopApp->setText("No Data");
         ui->lblHistTopIcon->clear();
@@ -359,16 +424,16 @@ void MainWindow::onExportHistory()
     }
 
     QTextStream out(&file);
-    out << "Category,Download,Upload,Total Traffic\\n";
+    out << "Category,Download,Upload,Total Traffic\n";
 
     for (int i = 0; i < ui->treeHistory->topLevelItemCount(); ++i) {
         QTreeWidgetItem *top = ui->treeHistory->topLevelItem(i);
-        out << QString("\"%1\",\"%2\",\"%3\",\"%4\"\\n")
+        out << QString("\"%1\",\"%2\",\"%3\",\"%4\"\n")
                    .arg(top->text(0), top->text(1), top->text(2), top->text(3));
 
         for (int j = 0; j < top->childCount(); ++j) {
             QTreeWidgetItem *child = top->child(j);
-            out << QString("\" - %1\",\"%2\",\"%3\",\"%4\"\\n")
+            out << QString("\" - %1\",\"%2\",\"%3\",\"%4\"\n")
                        .arg(child->text(0), child->text(1), child->text(2), child->text(3));
         }
     }
@@ -377,7 +442,6 @@ void MainWindow::onExportHistory()
     QMessageBox::information(this, "Export Successful", "Network history exported successfully!");
 }
 
-// JSON Load/Save functions remain the same as the previous iteration...
 void MainWindow::loadHistoryFromJson()
 {
     QFile file(m_historyFilePath);
@@ -397,6 +461,7 @@ void MainWindow::loadHistoryFromJson()
             DailyAppStat stat;
             stat.rxBytes = static_cast<quint64>(statsObj.value("rx").toDouble());
             stat.txBytes = static_cast<quint64>(statsObj.value("tx").toDouble());
+            stat.exePath = statsObj.value("path").toString();
             m_historyData[dateKey][appName] = stat;
         }
     }
@@ -413,6 +478,9 @@ void MainWindow::saveHistoryToJson()
             QJsonObject statObj;
             statObj["rx"] = static_cast<double>(appIt.value().rxBytes);
             statObj["tx"] = static_cast<double>(appIt.value().txBytes);
+            if (!appIt.value().exePath.isEmpty()) {
+                statObj["path"] = appIt.value().exePath;
+            }
             appsObj[appIt.key()] = statObj;
         }
         rootObj[dateIt.key()] = appsObj;
@@ -448,6 +516,14 @@ void MainWindow::loadSettings()
     ui->cmbOverlayTextColor->setCurrentText(settings.value("Overlay/TextColor", "White").toString());
     ui->cmbOverlayBgColor->setCurrentText(settings.value("Overlay/BgColor", "Transparent").toString());
 
+    ui->chkOverlayCpu->setChecked(settings.value("Overlay/ShowCpu", false).toBool());
+    ui->chkOverlayRam->setChecked(settings.value("Overlay/ShowRam", false).toBool());
+    ui->chkOverlayGpu->setChecked(settings.value("Overlay/ShowGpu", false).toBool());
+    ui->chkOverlayTemps->setChecked(settings.value("Overlay/ShowTemps", false).toBool());
+
+    ui->cmbOverlayRamFormat->setCurrentIndex(settings.value("Overlay/RamDisplayMode", 2).toInt());  // Default: GB
+    ui->cmbOverlayGpuSelect->setCurrentIndex(settings.value("Overlay/GpuIndex", 0).toInt());        // Default: Auto
+
     applySettingsToOverlay();
 
     if (ui->chkStartMinimized->isChecked()) {
@@ -468,6 +544,14 @@ void MainWindow::saveSettings()
     settings.setValue("Overlay/Opacity", ui->spinOverlayOpacity->value());
     settings.setValue("Overlay/TextColor", ui->cmbOverlayTextColor->currentText());
     settings.setValue("Overlay/BgColor", ui->cmbOverlayBgColor->currentText());
+
+    settings.setValue("Overlay/ShowCpu", ui->chkOverlayCpu->isChecked());
+    settings.setValue("Overlay/ShowRam", ui->chkOverlayRam->isChecked());
+    settings.setValue("Overlay/ShowGpu", ui->chkOverlayGpu->isChecked());
+    settings.setValue("Overlay/ShowTemps", ui->chkOverlayTemps->isChecked());
+
+    settings.setValue("Overlay/RamDisplayMode", ui->cmbOverlayRamFormat->currentIndex());
+    settings.setValue("Overlay/GpuIndex", ui->cmbOverlayGpuSelect->currentIndex());
 }
 
 void MainWindow::applySettingsToOverlay()
@@ -493,6 +577,24 @@ void MainWindow::applySettingsToOverlay()
     else if (selBg == "Transparent") bgColor = Qt::transparent;
 
     m_overlay->setCustomStyle(fontSize, txtColorHex, opacity, bgColor);
+
+    m_overlay->setShowCpu(ui->chkOverlayCpu->isChecked());
+    m_overlay->setShowRam(ui->chkOverlayRam->isChecked());
+    m_overlay->setShowGpu(ui->chkOverlayGpu->isChecked());
+    m_overlay->setShowTemps(ui->chkOverlayTemps->isChecked());
+
+    // ── RAM display format ──
+    int ramFmtIdx = ui->cmbOverlayRamFormat->currentIndex();
+    m_overlay->setRamDisplayMode(static_cast<RamDisplayMode>(ramFmtIdx));
+
+    // ── GPU selection (index 0 = Auto = -1, index 1+ = specific GPU) ──
+    int gpuSelIdx = ui->cmbOverlayGpuSelect->currentIndex();
+    int gpuMonitorIdx = gpuSelIdx - 1;  // -1 means auto/all
+    m_overlay->setGpuIndex(gpuMonitorIdx);
+    if (m_hwWidget && m_hwWidget->monitor()) {
+        m_hwWidget->monitor()->setGpuIndex(gpuMonitorIdx);
+    }
+
     saveSettings();
 }
 
@@ -523,7 +625,10 @@ void MainWindow::setupWidgets()
     ui->tabHardware->layout()->addWidget(m_hwWidget);
 
     m_overlay = new TaskbarOverlay;
+    m_overlay->setAdapterList(m_netWidget->getAdapterList());
     m_overlay->show();
+
+    connect(m_overlay, &TaskbarOverlay::adapterChangeRequested, m_netWidget, &NetworkWidget::selectAdapterByIPOrAuto);
 
     connect(m_netWidget, &NetworkWidget::speedUpdated, this, &MainWindow::onNetworkSpeed, Qt::QueuedConnection);
     connect(m_netWidget, &NetworkWidget::speedUpdated, m_overlay, &TaskbarOverlay::updateSpeed, Qt::QueuedConnection);
@@ -532,6 +637,8 @@ void MainWindow::setupWidgets()
         onHardwareSnapshot(snap);
         if (m_overlay) {
             m_overlay->updateHardware(static_cast<int>(snap.cpuLoadPct), static_cast<int>(snap.ramLoadPct));
+            m_overlay->updateFullHardware(snap.cpuLoadPct, snap.ramLoadPct, snap.ramUsedMB, snap.ramTotalMB,
+                                          snap.gpuLoadPct, snap.cpuTempC, snap.gpuTempC, 0.0);
         }
     }, Qt::QueuedConnection);
 
