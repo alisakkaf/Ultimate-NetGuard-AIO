@@ -57,9 +57,13 @@ private slots:
 
     void onTreeViewContextMenu(const QPoint &pos);
 
+public:
+    QString getExactProcessPath(quint32 pid, const QString &procName);
+    void selectAdapterByIPOrAuto(const QString &ipOrAuto);
+    QList<AdapterInfo> getAdapterList() const { return m_adapters; }
+
 private:
     void populateAdapterCombo();
-    QString getExactProcessPath(quint32 pid, const QString &procName);
     QIcon getIconByPid(quint32 pid, const QString &procName);
 
     Ui::NetworkWidget       *ui = nullptr;
