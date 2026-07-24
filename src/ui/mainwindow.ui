@@ -143,7 +143,7 @@
     <item>
      <widget class="QTabWidget" name="mainTabs">
       <property name="currentIndex">
-       <number>0</number>
+       <number>4</number>
       </property>
       <widget class="QWidget" name="tabNetwork">
        <attribute name="title">
@@ -590,6 +590,76 @@
                <string>Transparent</string>
               </property>
              </item>
+            </widget>
+           </item>
+           <item row="5" column="0" colspan="2">
+            <widget class="QCheckBox" name="chkOverlayCpu">
+             <property name="text">
+              <string>Show CPU Usage on Taskbar Overlay</string>
+             </property>
+            </widget>
+           </item>
+           <item row="6" column="0" colspan="2">
+            <widget class="QCheckBox" name="chkOverlayRam">
+             <property name="text">
+              <string>Show RAM Usage on Taskbar Overlay</string>
+             </property>
+            </widget>
+           </item>
+           <item row="7" column="0">
+            <widget class="QLabel" name="lblOverlayRamFormat">
+             <property name="text">
+              <string>RAM Display Format:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="7" column="1">
+            <widget class="QComboBox" name="cmbOverlayRamFormat">
+             <item>
+              <property name="text">
+               <string>Percentage (%)</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Used / Total (MB)</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Used / Total (GB)</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+           <item row="8" column="0" colspan="2">
+            <widget class="QCheckBox" name="chkOverlayGpu">
+             <property name="text">
+              <string>Show GPU Usage on Taskbar Overlay</string>
+             </property>
+            </widget>
+           </item>
+           <item row="9" column="0">
+            <widget class="QLabel" name="lblOverlayGpuSelect">
+             <property name="text">
+              <string>GPU to Monitor:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="9" column="1">
+            <widget class="QComboBox" name="cmbOverlayGpuSelect">
+             <item>
+              <property name="text">
+               <string>Auto (All GPUs Combined)</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+           <item row="10" column="0" colspan="2">
+            <widget class="QCheckBox" name="chkOverlayTemps">
+             <property name="text">
+              <string>Show CPU / GPU Temperatures on Taskbar Overlay</string>
+             </property>
             </widget>
            </item>
           </layout>
