@@ -9,6 +9,7 @@
 #include <QMutex>
 #include <QAtomicInt>
 #include <QMetaType>
+#include <QStringList>
 #include <vector>
 
 #ifndef WIN32_LEAN_AND_MEAN
@@ -36,6 +37,7 @@ struct HardwareSnapshot
     double  mbTempC     = 0.0;
     quint64 netRxBps    = 0;
     quint64 netTxBps    = 0;
+    QString gpuName;              // Name of the GPU being monitored
 };
 Q_DECLARE_METATYPE(HardwareSnapshot)
 
@@ -51,6 +53,10 @@ public:
     void stopMonitor();
     HardwareSnapshot lastSnapshot() const;
 
+    // ── Multi-GPU support ──
+    QStringList enumerateGpuNames() const;   // Returns list of installed GPU names
+    void setGpuIndex(int index);             // Select which GPU to monitor (0-based)
+
 signals:
     void snapshotReady(const HardwareSnapshot &snap);
 
@@ -62,7 +68,7 @@ private:
     void   shutdownWmi();
 
     // Core Fetchers
-    double queryGpuLoad();
+    double queryGpuLoad(const QString &gpuKeyword);
     void   collectTemperatures(HardwareSnapshot &snap);
 
     bool   initPdh();
@@ -92,4 +98,9 @@ private:
     bool             m_pdhReady    = false;
 
     quint64          m_prevRx = 0, m_prevTx = 0;
+
+    // ── Multi-GPU selection ──
+    int              m_gpuIndex = -1;          // -1 = auto (all GPUs combined)
+    QStringList      m_gpuNames;               // Cached GPU names
+    mutable QMutex   m_gpuMutex;
 };
