@@ -53,7 +53,7 @@ QList<AdapterInfo> NetworkMonitor::enumerateAdapters()
         if (!ipv4.isEmpty()) {
             AdapterInfo ai;
             ai.ip = ipv4;
-            ai.ipv6 = ipv6; // ── [عربي] التقاط الـ IPv6 للكرت إن وجد ──
+            ai.ipv6 = ipv6; // IPv6 address
             ai.hasGateway = gw;
             ai.index = a->IfIndex;
             QString fn = a->FriendlyName ? QString::fromWCharArray(a->FriendlyName) : ai.ip;
@@ -64,36 +64,73 @@ QList<AdapterInfo> NetworkMonitor::enumerateAdapters()
     return result;
 }
 
-// ── [عربي] الدالة الذكية لاختيار كرت الشبكة التلقائي (Smart Auto-Detect) ──
+// Smart Auto-Detect Adapter Index
 int NetworkMonitor::recommendedAdapterIndex(const QList<AdapterInfo> &list)
 {
     if (list.isEmpty()) return 0;
 
-    // 1. ── الذكاء الاصطناعي: نسأل الويندوز عن مسار الإنترنت الفعلي ──
+    auto isVirtual = [](const QString &description) {
+        QString desc = description.toLower();
+        return desc.contains("vmware") || desc.contains("virtual") || desc.contains("vbox") ||
+               desc.contains("radmin") || desc.contains("pseudo") || desc.contains("zerotier") ||
+               desc.contains("hamachi") || desc.contains("tap-") || desc.contains("tun-") ||
+               desc.contains("wsl") || desc.contains("vethernet");
+    };
+
+    // 1. Check active IPv4 interface
     DWORD bestIfIndex = 0;
     if (GetBestInterface(inet_addr("8.8.8.8"), &bestIfIndex) == NO_ERROR) {
         for (int i = 0; i < list.size(); ++i) {
-            if (list[i].index == bestIfIndex) {
+            if (list[i].index == bestIfIndex && !isVirtual(list[i].description)) {
                 return i;
             }
         }
     }
 
-    // 2. ── الخطة البديلة (Fallback): استبعاد الكروت الوهمية ──
+    // 2. Check active IPv6 interface
+    SOCKADDR_IN6 sa6 = {};
+    sa6.sin6_family = AF_INET6;
+    inet_pton(AF_INET6, "2001:4860:4860::8888", &sa6.sin6_addr);
+    MIB_IPFORWARD_ROW2 routeRow = {};
+    SOCKADDR_INET bestDest = {};
+    bestDest.Ipv6 = sa6;
+    if (GetBestRoute2(nullptr, 0, nullptr, &bestDest, 0, &routeRow, nullptr) == NO_ERROR) {
+        for (int i = 0; i < list.size(); ++i) {
+            if (list[i].index == routeRow.InterfaceIndex && !isVirtual(list[i].description)) {
+                return i;
+            }
+        }
+    }
+
+    // 3. Find physical adapter with highest active traffic (InOctets + OutOctets)
+    int bestTrafficIdx = -1;
+    quint64 maxBytes = 0;
+
     for (int i = 0; i < list.size(); ++i) {
-        QString desc = list[i].description.toLower();
-        if (list[i].hasGateway &&
-            !desc.contains("vmware") &&
-            !desc.contains("virtual") &&
-            !desc.contains("radmin") &&
-            !desc.contains("pseudo") &&
-            !desc.contains("zerotier"))
-        {
+        if (!isVirtual(list[i].description) && list[i].hasGateway) {
+            MIB_IF_ROW2 row;
+            ZeroMemory(&row, sizeof(row));
+            row.InterfaceIndex = list[i].index;
+            if (GetIfEntry2(&row) == NO_ERROR) {
+                quint64 totalBytes = row.InOctets + row.OutOctets;
+                if (totalBytes > maxBytes) {
+                    maxBytes = totalBytes;
+                    bestTrafficIdx = i;
+                }
+            }
+        }
+    }
+
+    if (bestTrafficIdx != -1) return bestTrafficIdx;
+
+    // 4. Fallback: First physical adapter with a Gateway
+    for (int i = 0; i < list.size(); ++i) {
+        if (list[i].hasGateway && !isVirtual(list[i].description)) {
             return i;
         }
     }
 
-    // 3. ── الملاذ الأخير ──
+    // 5. Ultimate Fallback
     for (int i = 0; i < list.size(); ++i) {
         if (list[i].hasGateway) return i;
     }
@@ -110,21 +147,28 @@ QString NetworkMonitor::getServiceNameFromPid(quint32 pid) const
     EnumServicesStatusExW(scm, SC_ENUM_PROCESS_INFO, SERVICE_WIN32, SERVICE_STATE_ALL,
                           nullptr, 0, &bytesNeeded, &servicesReturned, &resumeHandle, nullptr);
 
+    if (bytesNeeded == 0) { CloseServiceHandle(scm); return QString(); }
+
     QByteArray buffer(bytesNeeded, 0);
     LPENUM_SERVICE_STATUS_PROCESSW services = reinterpret_cast<LPENUM_SERVICE_STATUS_PROCESSW>(buffer.data());
 
+    QStringList svcList;
     if (EnumServicesStatusExW(scm, SC_ENUM_PROCESS_INFO, SERVICE_WIN32, SERVICE_STATE_ALL,
                               reinterpret_cast<LPBYTE>(services), bytesNeeded, &bytesNeeded,
                               &servicesReturned, &resumeHandle, nullptr)) {
         for (DWORD i = 0; i < servicesReturned; ++i) {
             if (services[i].ServiceStatusProcess.dwProcessId == pid) {
                 QString displayName = QString::fromWCharArray(services[i].lpDisplayName);
-                CloseServiceHandle(scm);
-                return displayName;
+                if (!displayName.isEmpty() && !svcList.contains(displayName)) {
+                    svcList << displayName;
+                }
             }
         }
     }
     CloseServiceHandle(scm);
+    if (!svcList.isEmpty()) {
+        return svcList.join(" + ");
+    }
     return QString();
 }
 
@@ -177,7 +221,7 @@ void NetworkMonitor::setAdapterIP(const QString &ip)
     for (const auto &ai : adps) {
         if (ai.ip == ip) {
             m_adapterIndex = ai.index;
-            m_adapterIPv6 = ai.ipv6; // حفظ الـ IPv6
+            m_adapterIPv6 = ai.ipv6;
             break;
         }
     }
@@ -215,7 +259,7 @@ void NetworkMonitor::run()
         m_captureRunning.store(false); emit captureStopped(); return;
     }
 
-    // ── [عربي] فتح مقبسين (Sockets) لالتقاط شبكة IPv4 و IPv6 في نفس الوقت ──
+    // ── Open Dual Sockets for IPv4 and IPv6 Packet Capture ──
     SOCKET sock4 = WSASocket(AF_INET, SOCK_RAW, IPPROTO_IP, nullptr, 0, WSA_FLAG_OVERLAPPED);
     SOCKET sock6 = INVALID_SOCKET;
 
@@ -236,7 +280,7 @@ void NetworkMonitor::run()
     DWORD dw = 0, on = RCVALL_ON;
     WSAIoctl(sock4, SIO_RCVALL, &on, sizeof(on), nullptr, 0, &dw, nullptr, nullptr);
 
-    // ── [عربي] إعداد مسار الـ IPv6 ──
+    // ── Configure IPv6 Socket ──
     if (!m_adapterIPv6.isEmpty()) {
         sock6 = WSASocket(AF_INET6, SOCK_RAW, IPPROTO_IPV6, nullptr, 0, WSA_FLAG_OVERLAPPED);
         if (sock6 != INVALID_SOCKET) {
@@ -259,15 +303,21 @@ void NetworkMonitor::run()
 
     std::atomic<bool> cacheStop{false};
     std::thread cacheThread([this, &cacheStop]() {
+        int loopCount = 0;
         while (!cacheStop.load()) {
             updateCaches();
-            std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+            loopCount++;
+            if (loopCount >= 25) { // Refresh local IPs every 5s
+                refreshLocalIPs();
+                loopCount = 0;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
         }
     });
 
     while (!m_stopFlag.load())
     {
-        // ── [عربي] الاستماع للشبكتين بذكاء ──
+        // ── Listen on both IPv4 and IPv6 ──
         fd_set readSet;
         FD_ZERO(&readSet);
         FD_SET(sock4, &readSet);
@@ -287,9 +337,18 @@ void NetworkMonitor::run()
             ParsedPacket pkt = PacketParser::parseIP(reinterpret_cast<const uint8_t*>(buf.constData()), static_cast<uint32_t>(len));
             if (!pkt.valid) continue;
 
-            const bool srcIsLocal = m_localIPs.contains(pkt.srcIP) || pkt.srcIP == m_adapterIP || pkt.srcIP == m_adapterIPv6;
-            const bool dstIsLocal = m_localIPs.contains(pkt.dstIP) || pkt.dstIP == m_adapterIP || pkt.dstIP == m_adapterIPv6;
-            pkt.isDownload = dstIsLocal && !srcIsLocal;
+            const bool srcIsLocal = m_localIPs.contains(pkt.srcIP) || pkt.srcIP == m_adapterIP || pkt.srcIP == m_adapterIPv6 || pkt.srcIP.startsWith("127.") || pkt.srcIP == "::1";
+            const bool dstIsLocal = m_localIPs.contains(pkt.dstIP) || pkt.dstIP == m_adapterIP || pkt.dstIP == m_adapterIPv6 || pkt.dstIP.startsWith("127.") || pkt.dstIP == "::1";
+
+            if (dstIsLocal && !srcIsLocal) {
+                pkt.isDownload = true;
+            } else if (srcIsLocal && !dstIsLocal) {
+                pkt.isDownload = false;
+            } else if (dstIsLocal && srcIsLocal) {
+                pkt.isDownload = (pkt.dstIP == m_adapterIP || pkt.dstIP == m_adapterIPv6);
+            } else {
+                pkt.isDownload = (pkt.dstIP == m_adapterIP || pkt.dstIP == m_adapterIPv6);
+            }
 
             quint32 pid  = 0;
             QString proc = "Unknown";
@@ -311,6 +370,8 @@ void NetworkMonitor::run()
                     if (pid == 0) {
                         quint16 localPort = pkt.isDownload ? pkt.dstPort : pkt.srcPort;
                         if (m_tcpListenCache.contains(localPort)) pid = m_tcpListenCache.value(localPort);
+                        else if (m_tcpListenCache.contains(pkt.dstPort)) pid = m_tcpListenCache.value(pkt.dstPort);
+                        else if (m_tcpListenCache.contains(pkt.srcPort)) pid = m_tcpListenCache.value(pkt.srcPort);
                     }
                 } else {
                     if (m_udpCache.contains(udpS)) pid = m_udpCache.value(udpS);
@@ -319,11 +380,13 @@ void NetworkMonitor::run()
                     if (pid == 0) {
                         quint16 localPort = pkt.isDownload ? pkt.dstPort : pkt.srcPort;
                         if (m_udpAnyCache.contains(localPort)) pid = m_udpAnyCache.value(localPort);
+                        else if (m_udpAnyCache.contains(pkt.dstPort)) pid = m_udpAnyCache.value(pkt.dstPort);
+                        else if (m_udpAnyCache.contains(pkt.srcPort)) pid = m_udpAnyCache.value(pkt.srcPort);
                     }
                 }
 
                 if (pid == 0) {
-                    proc = "System Idle / Network Overhead";
+                    proc = "System Services / Network Overhead";
                     isSvc = true;
                 } else if (pid == 4) {
                     proc = "System Kernel (ntoskrnl)";
@@ -368,7 +431,7 @@ void NetworkMonitor::updateCaches()
     QHash<quint16, quint32> tListenCache, uAnyCache;
     QHash<quint32, QString> pCache;
 
-    // ── [عربي] 1. استخراج عمليات IPv4 ──
+    // ── 1. Extract IPv4 Table ──
     DWORD szTcp = 0;
     GetExtendedTcpTable(nullptr, &szTcp, FALSE, AF_INET, TCP_TABLE_OWNER_PID_ALL, 0);
     QByteArray bufTcp(szTcp += 1024*20, '\0');
@@ -402,7 +465,7 @@ void NetworkMonitor::updateCaches()
         }
     }
 
-    // ── [عربي] 2. استخراج عمليات IPv6 (مع إصلاح توافق المترجم const_cast) ──
+    // ── 2. Extract IPv6 Table ──
     DWORD szTcp6 = 0;
     GetExtendedTcpTable(nullptr, &szTcp6, FALSE, AF_INET6, TCP_TABLE_OWNER_PID_ALL, 0);
     QByteArray bufTcp6(szTcp6 += 1024*20, '\0');
@@ -415,7 +478,7 @@ void NetworkMonitor::updateCaches()
             if (row.dwState == MIB_TCP_STATE_LISTEN) tListenCache.insert(lport, pid);
 
             char ls[INET6_ADDRSTRLEN]={}, rs[INET6_ADDRSTRLEN]={};
-            // استخدام const_cast لتفادي أخطاء MinGW القديمة
+            // const_cast for MinGW compatibility
             inet_ntop(AF_INET6, const_cast<UCHAR*>(row.ucLocalAddr), ls, sizeof(ls));
             inet_ntop(AF_INET6, const_cast<UCHAR*>(row.ucRemoteAddr), rs, sizeof(rs));
 
@@ -443,7 +506,7 @@ void NetworkMonitor::updateCaches()
         }
     }
 
-    // ── [عربي] 3. جلب أسماء العمليات ──
+    // ── 3. Resolve Process Names ──
     DWORD aProcs[1024], cbNeeded, cProcs;
     if (EnumProcesses(aProcs, sizeof(aProcs), &cbNeeded)) {
         cProcs = cbNeeded / sizeof(DWORD);
