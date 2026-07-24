@@ -14,6 +14,7 @@
 #include <iphlpapi.h>
 #include <objbase.h>
 #include <comdef.h>
+#include <dxgi.h>
 
 HardwareMonitor::HardwareMonitor(QObject *parent) : QThread(parent)
 {
@@ -46,6 +47,30 @@ HardwareSnapshot HardwareMonitor::lastSnapshot() const
     return m_lastSnap;
 }
 
+QStringList HardwareMonitor::enumerateGpuNames() const
+{
+    QStringList names;
+    IDXGIFactory *factory = nullptr;
+    if (SUCCEEDED(CreateDXGIFactory(__uuidof(IDXGIFactory), reinterpret_cast<void**>(&factory)))) {
+        IDXGIAdapter *adapter = nullptr;
+        for (UINT i = 0; factory->EnumAdapters(i, &adapter) != DXGI_ERROR_NOT_FOUND; ++i) {
+            DXGI_ADAPTER_DESC desc;
+            if (SUCCEEDED(adapter->GetDesc(&desc))) {
+                names << QString::fromWCharArray(desc.Description);
+            }
+            adapter->Release();
+        }
+        factory->Release();
+    }
+    return names;
+}
+
+void HardwareMonitor::setGpuIndex(int index)
+{
+    QMutexLocker lk(&m_gpuMutex);
+    m_gpuIndex = index;
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 void HardwareMonitor::run()
 {
@@ -63,7 +88,25 @@ void HardwareMonitor::run()
         collectNetwork(snap);
 
         if (m_wmiReady) {
-            snap.gpuLoadPct = queryGpuLoad();
+            // Determine GPU keyword to filter by
+            QString gpuKeyword;
+            {
+                QMutexLocker lk(&m_gpuMutex);
+                if (m_gpuNames.isEmpty()) {
+                    m_gpuNames = enumerateGpuNames();
+                }
+                if (m_gpuIndex >= 0 && m_gpuIndex < m_gpuNames.size()) {
+                    // Extract a short keyword from the GPU name for WMI filtering
+                    // e.g. "NVIDIA GeForce RTX 3080" -> look for "pid_" entries matching this adapter
+                    // WMI GPUEngine Name format: "pid_XXXX_luid_..._phys_N_eng_..."
+                    // phys_N corresponds to the adapter index
+                    gpuKeyword = QString("phys_%1_").arg(m_gpuIndex);
+                    snap.gpuName = m_gpuNames[m_gpuIndex];
+                } else if (!m_gpuNames.isEmpty()) {
+                    snap.gpuName = m_gpuNames.first();
+                }
+            }
+            snap.gpuLoadPct = queryGpuLoad(gpuKeyword);
             collectTemperatures(snap);
         }
 
@@ -255,11 +298,11 @@ void HardwareMonitor::collectTemperatures(HardwareSnapshot &snap)
     }
 }
 
-double HardwareMonitor::queryGpuLoad()
+double HardwareMonitor::queryGpuLoad(const QString &gpuKeyword)
 {
     double load = 0.0;
     if (m_wmiServices) {
-        BSTR q = SysAllocString(L"SELECT UtilizationPercentage FROM Win32_PerfFormattedData_GPUPerformanceCounters_GPUEngine WHERE Name LIKE '%engtype_3D%'");
+        BSTR q = SysAllocString(L"SELECT Name, UtilizationPercentage FROM Win32_PerfFormattedData_GPUPerformanceCounters_GPUEngine WHERE Name LIKE '%engtype_3D%'");
         BSTR wql = SysAllocString(L"WQL");
         IEnumWbemClassObject* enm = nullptr;
 
@@ -270,6 +313,21 @@ double HardwareMonitor::queryGpuLoad()
             int count = 0;
 
             while (enm->Next(WBEM_INFINITE, 1, &obj, &ret) == S_OK && obj) {
+                // If a GPU keyword filter is active, check the Name field
+                if (!gpuKeyword.isEmpty()) {
+                    VARIANT vName; VariantInit(&vName);
+                    if (SUCCEEDED(obj->Get(L"Name", 0, &vName, nullptr, nullptr)) && vName.vt == VT_BSTR) {
+                        QString name = QString::fromWCharArray(vName.bstrVal);
+                        VariantClear(&vName);
+                        if (!name.contains(gpuKeyword, Qt::CaseInsensitive)) {
+                            obj->Release();
+                            continue;
+                        }
+                    } else {
+                        VariantClear(&vName);
+                    }
+                }
+
                 VARIANT v; VariantInit(&v);
                 if (SUCCEEDED(obj->Get(L"UtilizationPercentage", 0, &v, nullptr, nullptr))) {
                     // Type 8 Error fixed: getVariantAsDouble now securely parses strings
