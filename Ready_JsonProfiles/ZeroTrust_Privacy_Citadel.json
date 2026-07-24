@@ -1,0 +1,20 @@
+[
+    { "action": "ALLOW", "appPath": "System", "dir": "IN", "enabled": true, "name": "NetGuard_System_IN" },
+    { "action": "ALLOW", "appPath": "System", "dir": "OUT", "enabled": true, "name": "NetGuard_System_OUT" },
+    { "action": "ALLOW", "appPath": "C:\\WINDOWS\\System32\\svchost.exe", "dir": "IN", "enabled": true, "name": "NetGuard_svchost_IN" },
+    { "action": "ALLOW", "appPath": "C:\\WINDOWS\\System32\\svchost.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_svchost_OUT" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Brave" },
+    { "action": "ALLOW", "appPath": "C:\\Users\\User\\Desktop\\Tor Browser\\Browser\\firefox.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_TorBrowser" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files\\I2P\\i2p.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_I2P" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files\\ProtonVPN\\ProtonVPN.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_ProtonVPN" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files\\NordVPN\\NordVPN.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_NordVPN" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files\\ExpressVPN\\expressvpn-ui.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_ExpressVPN" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files\\Mullvad VPN\\mullvad-vpn.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Mullvad" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files\\CyberGhost 8\\CyberGhost.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_CyberGhost" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files\\WireGuard\\wireguard.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_WireGuard" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files\\OpenVPN\\bin\\openvpn-gui.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_OpenVPN" },
+    { "action": "ALLOW", "appPath": "C:\\Users\\User\\AppData\\Local\\Programs\\signal-desktop\\Signal.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Signal" },
+    { "action": "ALLOW", "appPath": "C:\\Users\\User\\AppData\\Roaming\\Telegram Desktop\\Telegram.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Telegram" },
+    { "action": "ALLOW", "appPath": "C:\\Users\\User\\AppData\\Local\\Programs\\Session\\Session.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Session" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files\\KeePassXC\\KeePassXC.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_KeePassXC" }
+]

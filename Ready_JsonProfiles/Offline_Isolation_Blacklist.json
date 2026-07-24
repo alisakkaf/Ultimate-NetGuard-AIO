@@ -1,0 +1,59 @@
+[
+    { "action": "ALLOW", "appPath": "System", "dir": "IN", "enabled": true, "name": "NetGuard_System_IN" },
+    { "action": "ALLOW", "appPath": "System", "dir": "OUT", "enabled": true, "name": "NetGuard_System_OUT" },
+    { "action": "ALLOW", "appPath": "C:\\WINDOWS\\System32\\svchost.exe", "dir": "IN", "enabled": true, "name": "NetGuard_svchost_IN" },
+    { "action": "ALLOW", "appPath": "C:\\WINDOWS\\System32\\svchost.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_svchost_OUT" },
+    
+    { "action": "BLOCK", "appPath": "C:\\Program Files\\Adobe\\Adobe Photoshop 2024\\Photoshop.exe", "dir": "IN", "enabled": true, "name": "NetGuard_Block_Photoshop_IN" },
+    { "action": "BLOCK", "appPath": "C:\\Program Files\\Adobe\\Adobe Photoshop 2024\\Photoshop.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Block_Photoshop_OUT" },
+    
+    { "action": "BLOCK", "appPath": "C:\\Program Files\\Adobe\\Adobe Illustrator 2024\\Support Files\\Contents\\Windows\\Illustrator.exe", "dir": "IN", "enabled": true, "name": "NetGuard_Block_Illustrator_IN" },
+    { "action": "BLOCK", "appPath": "C:\\Program Files\\Adobe\\Adobe Illustrator 2024\\Support Files\\Contents\\Windows\\Illustrator.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Block_Illustrator_OUT" },
+    
+    { "action": "BLOCK", "appPath": "C:\\Program Files\\Adobe\\Adobe Premiere Pro 2024\\Adobe Premiere Pro.exe", "dir": "IN", "enabled": true, "name": "NetGuard_Block_Premiere_IN" },
+    { "action": "BLOCK", "appPath": "C:\\Program Files\\Adobe\\Adobe Premiere Pro 2024\\Adobe Premiere Pro.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Block_Premiere_OUT" },
+    
+    { "action": "BLOCK", "appPath": "C:\\Program Files\\Adobe\\Adobe After Effects 2024\\Support Files\\AfterFX.exe", "dir": "IN", "enabled": true, "name": "NetGuard_Block_AfterFX_IN" },
+    { "action": "BLOCK", "appPath": "C:\\Program Files\\Adobe\\Adobe After Effects 2024\\Support Files\\AfterFX.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Block_AfterFX_OUT" },
+    
+    { "action": "BLOCK", "appPath": "C:\\Program Files\\Adobe\\Acrobat DC\\Acrobat\\Acrobat.exe", "dir": "IN", "enabled": true, "name": "NetGuard_Block_Acrobat_IN" },
+    { "action": "BLOCK", "appPath": "C:\\Program Files\\Adobe\\Acrobat DC\\Acrobat\\Acrobat.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Block_Acrobat_OUT" },
+    
+    { "action": "BLOCK", "appPath": "C:\\Program Files\\Common Files\\Adobe\\Adobe Desktop Common\\IPCBox\\AdobeIPCBroker.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Block_AdobeIPC_OUT" },
+    { "action": "BLOCK", "appPath": "C:\\Program Files (x86)\\Common Files\\Adobe\\Adobe Desktop Common\\HDBox\\Setup.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Block_AdobeSetup_OUT" },
+
+    { "action": "BLOCK", "appPath": "C:\\Program Files\\Autodesk\\AutoCAD 2024\\acad.exe", "dir": "IN", "enabled": true, "name": "NetGuard_Block_AutoCAD_IN" },
+    { "action": "BLOCK", "appPath": "C:\\Program Files\\Autodesk\\AutoCAD 2024\\acad.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Block_AutoCAD_OUT" },
+    
+    { "action": "BLOCK", "appPath": "C:\\Program Files\\Autodesk\\3ds Max 2024\\3dsmax.exe", "dir": "IN", "enabled": true, "name": "NetGuard_Block_3dsMax_IN" },
+    { "action": "BLOCK", "appPath": "C:\\Program Files\\Autodesk\\3ds Max 2024\\3dsmax.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Block_3dsMax_OUT" },
+
+    { "action": "BLOCK", "appPath": "C:\\Program Files\\Common Files\\Autodesk Shared\\AdskLicensing\\Current\\AdskLicensingService\\AdskLicensingService.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Block_AdskLicensing_OUT" },
+
+    { "action": "BLOCK", "appPath": "C:\\Program Files\\Corel\\CorelDRAW Graphics Suite 2024\\Programs64\\CorelDRW.exe", "dir": "IN", "enabled": true, "name": "NetGuard_Block_CorelDRAW_IN" },
+    { "action": "BLOCK", "appPath": "C:\\Program Files\\Corel\\CorelDRAW Graphics Suite 2024\\Programs64\\CorelDRW.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Block_CorelDRAW_OUT" },
+
+    { "action": "BLOCK", "appPath": "C:\\Program Files\\TechSmith\\Camtasia 2023\\CamtasiaStudio.exe", "dir": "IN", "enabled": true, "name": "NetGuard_Block_Camtasia_IN" },
+    { "action": "BLOCK", "appPath": "C:\\Program Files\\TechSmith\\Camtasia 2023\\CamtasiaStudio.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Block_Camtasia_OUT" },
+
+    { "action": "BLOCK", "appPath": "C:\\Program Files\\Wondershare\\Wondershare Filmora\\Filmora.exe", "dir": "IN", "enabled": true, "name": "NetGuard_Block_Filmora_IN" },
+    { "action": "BLOCK", "appPath": "C:\\Program Files\\Wondershare\\Wondershare Filmora\\Filmora.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Block_Filmora_OUT" },
+
+    { "action": "BLOCK", "appPath": "C:\\Program Files\\VEGAS\\VEGAS Pro 21.0\\vegas210.exe", "dir": "IN", "enabled": true, "name": "NetGuard_Block_VegasPro_IN" },
+    { "action": "BLOCK", "appPath": "C:\\Program Files\\VEGAS\\VEGAS Pro 21.0\\vegas210.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Block_VegasPro_OUT" },
+
+    { "action": "BLOCK", "appPath": "C:\\Program Files\\Maxon Cinema 4D 2024\\Cinema 4D.exe", "dir": "IN", "enabled": true, "name": "NetGuard_Block_Cinema4D_IN" },
+    { "action": "BLOCK", "appPath": "C:\\Program Files\\Maxon Cinema 4D 2024\\Cinema 4D.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Block_Cinema4D_OUT" },
+
+    { "action": "BLOCK", "appPath": "C:\\Program Files\\Image-Line\\FL Studio 21\\FL64.exe", "dir": "IN", "enabled": true, "name": "NetGuard_Block_FLStudio_IN" },
+    { "action": "BLOCK", "appPath": "C:\\Program Files\\Image-Line\\FL Studio 21\\FL64.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Block_FLStudio_OUT" },
+
+    { "action": "BLOCK", "appPath": "C:\\Program Files\\Ableton\\Live 11 Suite\\Program\\Ableton Live 11 Suite.exe", "dir": "IN", "enabled": true, "name": "NetGuard_Block_Ableton_IN" },
+    { "action": "BLOCK", "appPath": "C:\\Program Files\\Ableton\\Live 11 Suite\\Program\\Ableton Live 11 Suite.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Block_Ableton_OUT" },
+
+    { "action": "BLOCK", "appPath": "C:\\Program Files\\SketchUp\\SketchUp 2024\\SketchUp.exe", "dir": "IN", "enabled": true, "name": "NetGuard_Block_SketchUp_IN" },
+    { "action": "BLOCK", "appPath": "C:\\Program Files\\SketchUp\\SketchUp 2024\\SketchUp.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Block_SketchUp_OUT" },
+
+    { "action": "BLOCK", "appPath": "C:\\Program Files (x86)\\Internet Download Manager\\IDMGrHlp.exe", "dir": "IN", "enabled": true, "name": "NetGuard_Block_IDMUpdate_IN" },
+    { "action": "BLOCK", "appPath": "C:\\Program Files (x86)\\Internet Download Manager\\IDMGrHlp.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Block_IDMUpdate_OUT" }
+]

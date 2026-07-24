@@ -1,0 +1,23 @@
+[
+    { "action": "ALLOW", "appPath": "System", "dir": "IN", "enabled": true, "name": "NetGuard_System_IN" },
+    { "action": "ALLOW", "appPath": "System", "dir": "OUT", "enabled": true, "name": "NetGuard_System_OUT" },
+    { "action": "ALLOW", "appPath": "C:\\WINDOWS\\System32\\svchost.exe", "dir": "IN", "enabled": true, "name": "NetGuard_svchost_IN" },
+    { "action": "ALLOW", "appPath": "C:\\WINDOWS\\System32\\svchost.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_svchost_OUT" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files (x86)\\Steam\\steam.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Steam" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files (x86)\\Steam\\bin\\cef\\cef.win7x64\\steamwebhelper.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_SteamWeb" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files (x86)\\Epic Games\\Launcher\\Portal\\Binaries\\Win64\\EpicGamesLauncher.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Epic" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files\\Electronic Arts\\EA Desktop\\EA Desktop\\EADesktop.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_EA" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files (x86)\\Battle.net\\Battle.net.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_BattleNet" },
+    { "action": "ALLOW", "appPath": "C:\\Riot Games\\Riot Client\\RiotClientServices.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Riot" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files (x86)\\Ubisoft\\Ubisoft Game Launcher\\upc.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Ubisoft" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files (x86)\\GOG Galaxy\\GalaxyClient.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_GOG" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files\\Rockstar Games\\Launcher\\Launcher.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Rockstar" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files\\Riot Vanguard\\vgc.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Vanguard" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files (x86)\\EasyAntiCheat\\EasyAntiCheat.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_EAC" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files\\BattlEye\\BEService.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_BattlEye" },
+    { "action": "ALLOW", "appPath": "C:\\Users\\User\\AppData\\Local\\Discord\\app-\\Discord.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Discord" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files\\TeamSpeak 3 Client\\ts3client_win64.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_TeamSpeak" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files\\obs-studio\\bin\\64bit\\obs64.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_OBS" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files\\Streamlabs OBS\\Streamlabs OBS.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Streamlabs" },
+    { "action": "ALLOW", "appPath": "C:\\Users\\User\\AppData\\Roaming\\Twitch\\Bin\\Twitch.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Twitch" }
+]

@@ -1,0 +1,21 @@
+[
+    { "action": "ALLOW", "appPath": "System", "dir": "IN", "enabled": true, "name": "NetGuard_System_IN" },
+    { "action": "ALLOW", "appPath": "System", "dir": "OUT", "enabled": true, "name": "NetGuard_System_OUT" },
+    { "action": "ALLOW", "appPath": "C:\\WINDOWS\\System32\\svchost.exe", "dir": "IN", "enabled": true, "name": "NetGuard_svchost_IN" },
+    { "action": "ALLOW", "appPath": "C:\\WINDOWS\\System32\\svchost.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_svchost_OUT" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files (x86)\\Internet Download Manager\\IDMan.exe", "dir": "IN", "enabled": true, "name": "NetGuard_IDM_IN" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files (x86)\\Internet Download Manager\\IDMan.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_IDM_OUT" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files\\FreeDownloadManager.ORG\\FreeDownloadManager\\fdm.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_FDM" },
+    { "action": "ALLOW", "appPath": "C:\\Users\\User\\AppData\\Local\\JDownloader 2\\JDownloader2.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_JDownloader2" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files\\qBittorrent\\qbittorrent.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_qBittorrent" },
+    { "action": "ALLOW", "appPath": "C:\\Users\\User\\AppData\\Roaming\\uTorrent\\uTorrent.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_uTorrent" },
+    { "action": "ALLOW", "appPath": "C:\\Users\\User\\AppData\\Roaming\\BitTorrent\\BitTorrent.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_BitTorrent" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files\\Deluge\\deluge.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Deluge" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files\\Transmission\\transmission-qt.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Transmission" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files\\Plex\\Plex Media Server\\Plex Media Server.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Plex" },
+    { "action": "ALLOW", "appPath": "C:\\Users\\User\\AppData\\Roaming\\Spotify\\Spotify.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Spotify" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files\\VideoLAN\\VLC\\vlc.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_VLC" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files\\Kodi\\kodi.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Kodi" },
+    { "action": "ALLOW", "appPath": "C:\\Users\\User\\AppData\\Local\\Programs\\LNV\\Stremio-4\\stremio.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Stremio" },
+    { "action": "ALLOW", "appPath": "C:\\Program Files\\WindowsApps\\4DF9E0F8.Netflix_6.99.5.0_x64__mcm4njqhnhss8\\Netflix.exe", "dir": "OUT", "enabled": true, "name": "NetGuard_Netflix" }
+]
