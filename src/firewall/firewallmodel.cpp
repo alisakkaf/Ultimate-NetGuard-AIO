@@ -10,6 +10,9 @@
 #include <QIcon>
 #include <QApplication>
 #include <QStyle>
+#include <windows.h>
+#include <shellapi.h>
+#include <QtWin>
 #include "stylemanager.h"
 #include "apptheme.h"
 
@@ -85,10 +88,37 @@ QVariant FirewallModel::data(const QModelIndex &idx, int role) const
 
     // Application Icon resolution (Now perfectly in Column 0)
     if (role == Qt::DecorationRole && col == COL_APP) {
-        if (!r.realAppPath.isEmpty()) {
-            QFileInfo fi(r.realAppPath);
+        QString path = !r.realAppPath.isEmpty() ? r.realAppPath : r.appPath;
+
+        if (!path.isEmpty()) {
+            if (path.contains("%")) {
+                wchar_t expanded[MAX_PATH] = {};
+                if (ExpandEnvironmentStringsW(path.toStdWString().c_str(), expanded, MAX_PATH)) {
+                    path = QString::fromWCharArray(expanded);
+                }
+            }
+
+            QFileInfo fi(path);
             if (fi.exists()) {
                 return m_iconProvider.icon(fi);
+            }
+
+            if (!fi.isAbsolute()) {
+                wchar_t sysDir[MAX_PATH] = {};
+                GetSystemDirectoryW(sysDir, MAX_PATH);
+                QString sysPath = QString::fromWCharArray(sysDir) + "\\" + path;
+                if (QFileInfo::exists(sysPath)) {
+                    return m_iconProvider.icon(QFileInfo(sysPath));
+                }
+            }
+
+            SHFILEINFOW sfi = {};
+            if (SHGetFileInfoW(path.toStdWString().c_str(), FILE_ATTRIBUTE_NORMAL, &sfi, sizeof(sfi), SHGFI_ICON | SHGFI_SMALLICON | SHGFI_USEFILEATTRIBUTES)) {
+                if (sfi.hIcon) {
+                    QIcon ico = QIcon(QtWin::fromHICON(sfi.hIcon));
+                    DestroyIcon(sfi.hIcon);
+                    return ico;
+                }
             }
         }
         return QApplication::style()->standardIcon(QStyle::SP_ComputerIcon);
