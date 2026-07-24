@@ -5,7 +5,7 @@
 #include "networkwidget.h"
 #include "ui_networkwidget.h"
 
-// ── استدعاء مدير الثيمات الخاص ببرنامجك ──
+// ── Theme Manager ──
 #include "stylemanager.h"
 #include "apptheme.h"
 
@@ -69,7 +69,7 @@ ProcessInfoDialog::ProcessInfoDialog(const QString &name, quint32 pid, const QSt
     setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
     setMinimumWidth(520);
 
-    // ── الربط المباشر مع مدير الثيمات الخاص بك ──
+    // ── Dynamic Theme Palette ──
     bool isDark = (StyleManager::instance().currentMode() == AppTheme::Dark);
 
     QString bg       = isDark ? "#1F2328" : "#F6F8FA";
@@ -195,9 +195,7 @@ NetworkWidget::NetworkWidget(QWidget *parent)
     , ui(new Ui::NetworkWidget)
 {
     ui->setupUi(this);
-    EnableDebugPrivilege();
-
-    // ── [عربي] السطر السحري لفك حظر الويندوز عن الـ Download (يعمل بصمت تام) ──
+    // ── Ensure Windows Firewall Inbound Rule for Application Traffic ──
     QString appPath = QDir::toNativeSeparators(QCoreApplication::applicationFilePath());
     QProcess::execute("netsh", {"advfirewall", "firewall", "add", "rule", "name=NetGuardAIO", "dir=in", "action=allow", "program=" + appPath, "enable=yes"});
 
@@ -286,7 +284,7 @@ void NetworkWidget::onTreeViewContextMenu(const QPoint &pos)
 
     QMenu menu(this);
 
-    // ── الربط المباشر لثيم القائمة المنسدلة ──
+    // ── Context Menu Styling ──
     bool isDark = (StyleManager::instance().currentMode() == AppTheme::Dark);
     if (isDark) {
         menu.setStyleSheet(
@@ -348,14 +346,13 @@ void NetworkWidget::onTreeViewContextMenu(const QPoint &pos)
 }
 
 void NetworkWidget::autoStart() {
+    if (m_adapters.isEmpty()) populateAdapterCombo();
     if (m_adapters.isEmpty()) return;
-    int idx = NetworkMonitor::recommendedAdapterIndex(m_adapters);
-    ui->cmbAdapter->setCurrentIndex(idx);
-    onAdapterChanged(idx);
+    ui->cmbAdapter->setCurrentIndex(0); // Smart Auto-Detect
+    onAdapterChanged(0);
     m_monitor->startCapture();
 }
 void NetworkWidget::populateAdapterCombo() {
-    // Save current selection so we can restore it after refresh
     QString prevIP;
     if (ui->cmbAdapter->currentIndex() >= 0)
         prevIP = ui->cmbAdapter->currentData().toString();
@@ -363,24 +360,32 @@ void NetworkWidget::populateAdapterCombo() {
     m_adapters = NetworkMonitor::enumerateAdapters();
     ui->cmbAdapter->blockSignals(true);
     ui->cmbAdapter->clear();
+
+    // ── Smart Auto-Detect option at Index 0 ──
+    ui->cmbAdapter->addItem("⚡ Smart Auto-Detect (Auto)", "AUTO");
+
     for (const auto &ai : m_adapters)
         ui->cmbAdapter->addItem(ai.description, ai.ip);
     ui->cmbAdapter->blockSignals(false);
 
-    if (!m_adapters.isEmpty()) {
-        // Try to restore previous selection
-        int restoreIdx = -1;
-        if (!prevIP.isEmpty()) {
-            for (int i = 0; i < m_adapters.size(); ++i) {
-                if (m_adapters[i].ip == prevIP) { restoreIdx = i; break; }
-            }
+    int restoreIdx = 0; // Default to Auto
+    if (!prevIP.isEmpty() && prevIP != "AUTO") {
+        for (int i = 0; i < ui->cmbAdapter->count(); ++i) {
+            if (ui->cmbAdapter->itemData(i).toString() == prevIP) { restoreIdx = i; break; }
         }
-        if (restoreIdx < 0)
-            restoreIdx = NetworkMonitor::recommendedAdapterIndex(m_adapters);
-        ui->cmbAdapter->setCurrentIndex(restoreIdx);
-        ui->lblStatus->setText("Auto-selected: " + m_adapters[restoreIdx].description);
-    } else {
-        ui->lblStatus->setText("No network adapters found.");
+    }
+
+    ui->cmbAdapter->setCurrentIndex(restoreIdx);
+    onAdapterChanged(restoreIdx);
+}
+
+void NetworkWidget::selectAdapterByIPOrAuto(const QString &ipOrAuto)
+{
+    for (int i = 0; i < ui->cmbAdapter->count(); ++i) {
+        if (ui->cmbAdapter->itemData(i).toString() == ipOrAuto) {
+            ui->cmbAdapter->setCurrentIndex(i);
+            break;
+        }
     }
 }
 
@@ -388,16 +393,39 @@ void NetworkWidget::populateAdapterCombo() {
 bool NetworkWidget::eventFilter(QObject *obj, QEvent *event)
 {
     if (obj == ui->cmbAdapter && event->type() == QEvent::MouseButtonPress) {
-        if (!m_capturing) {
-            populateAdapterCombo();
-        }
+        populateAdapterCombo();
     }
     return QWidget::eventFilter(obj, event);
 }
 
 void NetworkWidget::onAdapterChanged(int idx) {
-    if (idx >= 0 && idx < m_adapters.size())
-        m_monitor->setAdapterIP(m_adapters[idx].ip);
+    if (idx < 0 || idx >= ui->cmbAdapter->count()) return;
+
+    QString selectedData = ui->cmbAdapter->itemData(idx).toString();
+    QString targetIP;
+
+    if (selectedData == "AUTO") {
+        int bestIdx = NetworkMonitor::recommendedAdapterIndex(m_adapters);
+        if (bestIdx >= 0 && bestIdx < m_adapters.size()) {
+            targetIP = m_adapters[bestIdx].ip;
+            ui->lblStatus->setText("⚡ Auto-Detecting: " + m_adapters[bestIdx].description);
+        }
+    } else {
+        targetIP = selectedData;
+        ui->lblStatus->setText("Selected Adapter: " + ui->cmbAdapter->currentText());
+    }
+
+    if (!targetIP.isEmpty()) {
+        bool wasCapturing = m_capturing;
+        if (wasCapturing) {
+            m_monitor->stopCapture();
+            m_monitor->wait(1000);
+        }
+        m_monitor->setAdapterIP(targetIP);
+        if (wasCapturing) {
+            m_monitor->startCapture();
+        }
+    }
 }
 
 void NetworkWidget::onStartStop()
