@@ -217,8 +217,12 @@ void NetworkTreeModel::onTick()
         quint64 sumRx = 0, sumTx = 0;
 
         for (auto &c : p.conns) {
-            c.rxSpeed = (c.rxBytes > c.prevRx) ? (c.rxBytes - c.prevRx) : 0;
-            c.txSpeed = (c.txBytes > c.prevTx) ? (c.txBytes - c.prevTx) : 0;
+            quint64 rawRx = (c.rxBytes > c.prevRx) ? (c.rxBytes - c.prevRx) : 0;
+            quint64 rawTx = (c.txBytes > c.prevTx) ? (c.txBytes - c.prevTx) : 0;
+
+            c.rxSpeed = static_cast<quint64>(0.7 * rawRx + 0.3 * c.rxSpeed);
+            c.txSpeed = static_cast<quint64>(0.7 * rawTx + 0.3 * c.txSpeed);
+
             c.prevRx  = c.rxBytes;
             c.prevTx  = c.txBytes;
             sumRx    += c.rxSpeed;
