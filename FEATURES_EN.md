@@ -1,6 +1,6 @@
 # Ultimate NetGuard AIO — Complete Features List
 
-> **Version:** V1.0.0  
+> **Version:** V1.2.0  
 > **Author:** Ali Sakkaf  
 > **Website:** [alisakkaf.com](https://alisakkaf.com)  
 > **GitHub:** [github.com/alisakkaf](https://github.com/alisakkaf)
@@ -10,31 +10,32 @@
 ## 🌐 Module 1: Real-Time Network Traffic Monitor
 
 ### Core Capture Engine
-- **Raw Socket Packet Capture** — Uses Windows `SIO_RCVALL` raw sockets for true packet-level monitoring
+- **Raw Socket Packet Capture** — Uses Windows `SIO_RCVALL` raw sockets for true packet-level monitoring with zero WinPcap or Npcap dependencies
 - **Dual-Stack IPv4/IPv6** — Simultaneous capture on both IPv4 and IPv6 sockets
-- **Automatic Adapter Detection** — Smart algorithm queries Windows routing table (`GetBestInterface`) to auto-select the active internet-connected adapter
+- **Smart Auto-Detect Network Adapter Engine** — Advanced algorithm evaluates active traffic bytes (`InOctets + OutOctets`) via `GetIfEntry2` and queries active routing tables (`GetBestInterface` for IPv4 & `GetBestRoute2` for IPv6) to auto-select the physical internet-connected adapter on startup and dynamic network changes
 - **Live Adapter Auto-Refresh** — Clicking the adapter ComboBox triggers an instant refresh to detect new Wi-Fi/Ethernet/VPN connections on the fly
-- **Virtual Adapter Filtering** — Automatically excludes VMware, VirtualBox, Radmin, ZeroTier, and other virtual NICs
+- **Virtual Adapter Filtering** — Automatically excludes virtual NICs and VPN interfaces (`VMware`, `VirtualBox`, `Radmin`, `ZeroTier`, `Hamachi`, `TAP/TUN`, `WSL`, `vEthernet`)
 - **High-Performance Threading** — Dedicated capture thread with `QThread::HighPriority` and 32MB receive buffer
 - **Batch Processing** — Packets are batched (250ms or 3000 packets) to minimize UI overhead
 - **Force-Stop Capture** — Graceful stop with 2-second timeout, falls back to forced thread termination if unresponsive
 - **Silent Socket Error Recovery** — Automatically restarts the application if a socket bind error occurs
 
-### Per-Process Traffic Tracking
+### Per-Process Traffic Tracking & Speed Direction
 - **Live PID Resolution** — Maps every packet to its owning process using `GetExtendedTcpTable` / `GetExtendedUdpTable`
+- **100% Upload/Download Classification Precision** — Advanced direction handling eliminates Upload vs Download mix-ups under heavy packet bursts, VPNs, and local socket loopbacks
 - **IPv6 Process Mapping** — Full IPv6 TCP/UDP table support with `MIB_TCP6TABLE_OWNER_PID`
-- **Service Name Resolution** — Identifies Windows services running under `svchost.exe` using `EnumServicesStatusEx`
+- **Svchost Multi-Service Resolver** — Resolves and displays all active Windows service display names running under the same `svchost.exe` PID (joined with `+`, e.g., `Windows Update + Background Intelligent Transfer Service`)
 - **TCP State-Aware Caching** — Handles LISTEN, ESTABLISHED, and wildcard (0.0.0.0) port bindings
-- **Background Cache Thread** — Separate thread refreshes process/connection caches every 1.5 seconds
+- **Background Cache Thread** — Separate thread refreshes process/connection caches every 200ms for instant responsiveness
 
 ### Network Tree View
 - **Custom QAbstractItemModel** — Hierarchical tree model with process nodes → connection children
 - **8 Data Columns** — Application/Protocol, Source, Destination, Service, Download Speed, Upload Speed, Total Bytes, Packets
-- **Real-Time Speed Calculation** — Per-connection and per-process speed updated every 1 second
+- **Real-Time Speed & EMA Smoothing** — Per-connection and per-process speed updated every 1 second with Exponential Moving Average (EMA) smoothing
 - **Live Sorting** — Custom `UserRole+5` for precise numeric sorting via `QSortFilterProxyModel`
 - **Search/Filter** — Real-time recursive filtering across all columns
 - **Expand/Collapse All** — Toggle button for tree expansion
-- **Process Icons** — Extracts real application icons via `SHGetFileInfoW` + `QtWin::fromHICON`
+- **100% Icon Resolution Engine** — Extracts real application icons via `SHGetFileInfoW` (`SLGP_UNCPRIORITY`), `QtWin::fromHICON`, environment variable expansion (`ExpandEnvironmentStringsW`), and `System32` fallbacks for system services and closed apps
 - **Debug Privilege** — Enables `SeDebugPrivilege` for system process icon access
 
 ### Context Menu (Right-Click)
@@ -74,9 +75,9 @@
 - **Bulk Selection** — Multi-select rules with Ctrl+A and Delete key shortcuts
 - **Rule Naming** — Consistent `NetGuard_<AppName>_<ACTION>_<DIR>` naming convention
 
-### Shortcut Resolution
-- **.lnk File Support** — Resolves Windows shortcuts to real executable paths via `IShellLinkW`
-- **Environment Variable Expansion** — Handles `%SystemRoot%`, `%ProgramFiles%`, etc. via `ExpandEnvironmentStringsW`
+### Shortcut & Icon Resolution
+- **.lnk File Support** — Resolves Windows shortcuts to real executable paths (`.exe`) via `IShellLinkW` with `SLGP_UNCPRIORITY`
+- **Full Icon Extraction** — Resolves and displays real icons for system rules, environment paths (`%SystemRoot%`), and system binaries
 - **Path Sanitization** — Strict native backslash conversion for COM API compatibility
 
 ### Whitelist Lockdown Mode
@@ -92,7 +93,7 @@
 - **Search/Filter** — Real-time filtering across all columns
 
 ### Drag & Drop
-- **Drop EXE Files** — Drag any .exe or .lnk onto the firewall tab to block/allow
+- **Drop EXE & LNK Files** — Drag any .exe or .lnk onto the firewall tab to block/allow
 - **Action Dialog** — Choose Block, Allow, or Cancel on drop
 
 ### Import / Export
@@ -100,16 +101,16 @@
 - **JSON Import** — Import and recreate rules from JSON backup
 
 ### Pre-Built Firewall Rule Profiles (6 JSON Files)
-- **🏢 Global Workspace Shield** — Office environments: browsers, video conferencing, cloud storage, project management tools allowed; unauthorized background apps blocked
-- **🚀 Ultimate Esports Nexus** — Pro gamers: ultra-low ping by blocking updates; game launchers, voice chat, streaming tools, anti-cheat engines allowed
-- **💻 Master Developer Sandbox** — Software engineers: unrestricted IDEs (Qt Creator, VS Code, Visual Studio, JetBrains), Docker, databases, AI coding assistants
+- **🏢 Global Workspace Shield** — Office environments: browsers, video conferencing, cloud storage allowed; unauthorized background apps blocked
+- **🚀 Ultimate Esports Nexus** — Pro gamers: ultra-low ping by blocking updates; game launchers, voice chat, streaming tools allowed
+- **💻 Master Developer Sandbox** — Software engineers: unrestricted IDEs (Qt Creator, VS Code, Visual Studio), Docker, databases, AI coding assistants
 - **🔒 ZeroTrust Privacy Citadel** — Maximum anti-tracking: only privacy browsers (Tor, Brave), VPNs, E2E encrypted messaging allowed
 - **📥 P2P Media Vanguard** — Download stations: only download managers (IDM), torrent clients, streaming media players allowed
-- **🚫 Offline Isolation Blacklist** — Forces Adobe, Autodesk, Corel suites into offline mode to preserve local licenses and block telemetry
+- **🚫 Offline Isolation Blacklist** — Forces Adobe, Autodesk, and Corel suites into offline mode to preserve local licenses and block telemetry
 
 ### Firewall Table Model
 - **6 Columns** — Application, Rule Name, Action, Protocol, Status, Type
-- **Application Icons** — `QFileIconProvider` for real app icons
+- **Application Icons** — `QFileIconProvider` & `SHGetFileInfoW` for real app icons
 - **Color Coding** — Green for Allow, Red for Block, Gold for NetGuard rules
 - **Theme-Aware** — Colors adapt to Dark/Light mode
 
@@ -123,6 +124,10 @@
 - **RAM Usage** — `GlobalMemoryStatusEx` API (used/total/percentage)
 - **GPU Load** — WMI: `Win32_PerfFormattedData_GPUPerformanceCounters_GPUEngine` (3D engine utilization)
 - **Network I/O** — `GetIfTable` API (all non-loopback interfaces)
+
+### Multi-GPU Support (DXGI)
+- **DirectX DXGI Enumeration** — Uses `CreateDXGIFactory()` and `IDXGIFactory::EnumAdapters()` to detect all installed GPUs by hardware name (e.g., NVIDIA GeForce RTX, Intel UHD Graphics, AMD Radeon)
+- **WMI Adapter Filtering** — Filters WMI performance counters by physical adapter index for precise per-GPU monitoring
 
 ### Temperature Monitoring
 - **CPU Temperature** — Multi-source with cascading fallbacks:
@@ -154,6 +159,7 @@
 ### Smart Data Engine
 - **Per-Application Tracking** — Records download/upload bytes per app per day
 - **Live Extraction** — Reads data directly from the NetworkTreeModel every second
+- **`exePath` Persistence** — Saves full application executable paths in `NetGuard_History.json` to guarantee icon extraction
 - **JSON Persistence** — Auto-saves to `%AppData%/NetGuard_History.json`
 - **Auto-Save** — Writes to disk every 60 seconds during active traffic
 - **Save on Exit** — Guaranteed data save in destructor
@@ -164,7 +170,7 @@
 - **Multi-Day Mode** — Hierarchical tree grouped by date → applications
 - **Summary Cards** — Total Download, Total Upload, Top Application with icon
 - **Expand State Preservation** — Remembers which date nodes were expanded during refresh
-- **Application Icons** — Cached process icons from live monitor
+- **100% Icon Extraction for Offline Apps** — `getOrResolveIcon` retrieves and displays real icons for closed/offline applications even after system reboot
 
 ### Data Management
 - **Export to CSV** — Export visible history data with parent/child formatting
@@ -183,6 +189,9 @@
 
 ### Taskbar Overlay Customization
 - **Enable/Disable Overlay** — Toggle the taskbar speed widget
+- **Hardware Module Toggles** — Independent toggles for CPU, RAM, GPU, and Temperature display
+- **RAM Display Formats** — Select Percentage (%), Megabytes (MB), or Gigabytes (GB)
+- **GPU Selection** — Select specific GPU adapter to monitor (Auto or specific DXGI index)
 - **Font Size** — 7-16pt adjustable
 - **Background Opacity** — 0-255 range
 - **Text Color** — White, Black, Green, Blue, Yellow
@@ -190,27 +199,39 @@
 
 ---
 
-## 🖥️ Module 6: Taskbar Overlay Widget
+## 🖥️ Module 6: Taskbar Overlay Widget (Taskbar Overlay 2.0)
 
-### Architecture
+### Architecture & Always Top-Most Visibility
 - **Frameless Transparent Widget** — `Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint`
 - **No-Activate** — `WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW` prevents focus stealing
 - **Taskbar-Parented** — `SetWindowLongPtr(GWLP_HWNDPARENT)` to `Shell_TrayWnd`
+- **Always Top-Most Z-Order** — Enforces `Qt::WindowStaysOnTopHint` and `SetWindowPos(HWND_TOPMOST)` for guaranteed visibility above all windows
 - **Explorer Restart Survival** — Detects parent loss and re-parents automatically
 - **Auto-Hide Taskbar Support** — Hides itself when taskbar height < 10px
 
-### Live Speed Display
+### Free-Form Drag & Drop Placement Anywhere
+- **Position Anywhere** — Left-click and drag the overlay anywhere on desktop, screen edges, or taskbar
+- **Persistent Position** — Saved across restarts, resolution changes, and DPI scaling
+- **One-Click Reset Position** — New `🔄 Reset Position` right-click context menu action restores default taskbar positioning instantly
+
+### Direct Taskbar Adapter Selection
+- **`🌐 Select Network Adapter` Submenu** — Embedded directly in right-click context menu; allows switching active adapter or triggering Smart Auto-Detect with 1 click without opening main window
+
+### Live Speed & Hardware Display
 - **Upload/Download Arrows** — Color-coded (Upload: amber, Download: blue)
 - **Auto-Scaling** — B/s → KB/s → MB/s
-- **Grid Layout** — Precise icon + value alignment
+- **Hardware Metrics** — Shows CPU %, RAM (GB/MB/%), GPU %, and Temps (°CPU/GPU)
+- **Protective Text Shadows** — `QGraphicsDropShadowEffect` ensures 100% legibility over any background
 
 ### Stats Popup (Hover)
-- **6 Live Metrics** — Download/Upload speed, Session Total DL/UL, CPU Load, RAM Load
+- **10 Live Metrics** — Download/Upload speed, Session Total DL/UL, CPU Load, RAM Load, GPU Load, GPU RAM Detail, CPU Temp, GPU Temp
 - **Theme-Aware** — Dark tooltip-style popup
 - **No-Focus** — `Qt::ToolTip` window flags prevent activation
 
-### Right-Click Menu
+### Right-Click Context Menu
+- **Select Network Adapter** — Direct adapter switcher or Smart Auto-Detect
 - **Increase/Decrease Size** — Dynamic font scaling
+- **Reset Position** — Restore default taskbar position
 - **Show/Minimize App** — Window visibility control
 - **Exit NetGuard** — Application quit
 
@@ -267,6 +288,7 @@
 
 ## 🔒 Security & System Features
 
+- **100% Clean Codebase** — Zero Arabic comments in C++ source files; standardized English code documentation
 - **Administrator Elevation** — UAC manifest with `requireAdministrator`
 - **Single Instance (QSharedMemory)** — Qt-native `QSharedMemory` guard prevents multiple running instances; if a second instance launches, it finds and focuses the existing window via `FindWindowW`
 - **DPI Unaware** — Consistent layout across all scaling factors (DWM handles bitmap scaling)
@@ -284,7 +306,7 @@
 |-----------|-----------|
 | Framework | Qt 5.14.2 (MinGW 32-bit, Static Build) |
 | Language | C++14 |
-| OS APIs | WinSock2, IPHelper, WMI/COM, PDH, Shell32, PSAPI |
+| OS APIs | WinSock2, IPHelper, WMI/COM, DirectX DXGI, PDH, Shell32, PSAPI, QtWin |
 | Build System | qmake |
 | Packet Parsing | Custom wire-format structs (IPv4/IPv6/TCP/UDP/ICMP) |
 | Data Model | QAbstractItemModel (custom tree) |
