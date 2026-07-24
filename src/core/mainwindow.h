@@ -31,6 +31,7 @@ class TaskbarOverlay;
 struct DailyAppStat {
     quint64 rxBytes = 0;
     quint64 txBytes = 0;
+    QString exePath;
 };
 
 class MainWindow : public QMainWindow
