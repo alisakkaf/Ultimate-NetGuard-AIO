@@ -220,7 +220,7 @@ bool FirewallManager::isBlocked(const QString &appPath) const
 QString FirewallManager::resolveShortcut(const QString &path) const
 {
     QString nativePath = QDir::toNativeSeparators(path);
-    if (!nativePath.endsWith(".lnk", Qt::CaseInsensitive)) return nativePath;
+    if (!nativePath.endsWith(".lnk", Qt::CaseInsensitive)) return expandAndCleanPath(nativePath);
 
     IShellLinkW *psl = nullptr;
     QString result = nativePath;
@@ -233,11 +233,14 @@ QString FirewallManager::resolveShortcut(const QString &path) const
             hr = ppf->Load(nativePath.toStdWString().c_str(), STGM_READ);
             if (SUCCEEDED(hr)) {
                 psl->Resolve(nullptr, SLR_NO_UI | SLR_ANY_MATCH);
-                wchar_t target[MAX_PATH];
-                WIN32_FIND_DATAW wfd;
-                hr = psl->GetPath(target, MAX_PATH, &wfd, SLGP_RAWPATH);
-                if (SUCCEEDED(hr)) {
+                wchar_t target[MAX_PATH] = {};
+                hr = psl->GetPath(target, MAX_PATH, nullptr, SLGP_UNCPRIORITY);
+                if (SUCCEEDED(hr) && wcslen(target) > 0) {
                     result = QString::fromWCharArray(target);
+                } else {
+                    QFileInfo fi(nativePath);
+                    QString targetQt = fi.symLinkTarget();
+                    if (!targetQt.isEmpty()) result = targetQt;
                 }
             }
             ppf->Release();
