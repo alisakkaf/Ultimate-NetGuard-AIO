@@ -377,6 +377,14 @@ void TaskbarOverlay::enforceTopMostAndPosition()
 
 // ============================================================================
 // --- Drag & Drop with Fixed Safe Menu ---------------------------------------
+void TaskbarOverlay::resetPosition()
+{
+    m_offsetX = 0;
+    m_offsetY = 0;
+    m_lastX = -1;
+    enforceTopMostAndPosition();
+}
+
 // ============================================================================
 void TaskbarOverlay::mousePressEvent(QMouseEvent *e)
 {
@@ -393,6 +401,10 @@ void TaskbarOverlay::mousePressEvent(QMouseEvent *e)
         QAction *actAuto = netMenu->addAction("⚡ Smart Auto-Detect (Auto)");
         connect(actAuto, &QAction::triggered, this, [this]() {
             emit adapterChangeRequested("AUTO");
+        });
+        QAction *actAll = netMenu->addAction("🌐 All Network Adapters (Select All)");
+        connect(actAll, &QAction::triggered, this, [this]() {
+            emit adapterChangeRequested("ALL");
         });
         netMenu->addSeparator();
 
