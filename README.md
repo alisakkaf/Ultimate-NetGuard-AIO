@@ -6,7 +6,7 @@
 
 ### The Most Powerful Network & System Monitor for Windows — All In One
 
-[![Version](https://img.shields.io/badge/Version-1.2.0-2EA043.svg?style=for-the-badge)](https://github.com/alisakkaf/Ultimate-NetGuard-AIO/releases)
+[![Version](https://img.shields.io/github/v/release/alisakkaf/Ultimate-NetGuard-AIO?style=for-the-badge&color=2EA043&label=Version)](https://github.com/alisakkaf/Ultimate-NetGuard-AIO/releases)
 [![Platform](https://img.shields.io/badge/Platform-Windows%207--11-0078D6.svg?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/alisakkaf/Ultimate-NetGuard-AIO)
 [![License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
 [![Qt](https://img.shields.io/badge/Qt-5.14.2-41CD52.svg?style=for-the-badge&logo=qt&logoColor=white)](https://www.qt.io/)
@@ -32,6 +32,8 @@
 
 - [About](#-about)
 - [Key Features](#-key-features)
+- [What's New in v1.3.0](#-whats-new-in-v130)
+- [What's New in v1.2.1](#-whats-new-in-v121)
 - [What's New in v1.2.0](#-whats-new-in-v120)
 - [What's New in v1.1.0](#-whats-new-in-v110)
 - [Screenshots](#-screenshots)
@@ -108,6 +110,65 @@ The application is designed for:
 | 📦 **Self-Installer** | Auto-deploy to Program Files | Desktop shortcut, registry startup, kill-and-replace |
 
 </div>
+
+---
+
+## 🆕 What's New in v1.3.0
+
+<div align="center">
+
+> **🔒 VPN Stability & Zero-Crash Protection · ⚙️ Windows Services Control · ℹ️ WordWrap Properties Dialog · ⚠️ 1-Click Reset Settings · 📦 Embedded Ready_JsonProfiles Auto-Extraction**
+
+</div>
+
+### 🔒 VPN & Dynamic Interface Zero-Crash Protection
+- **Thread-Safe Mutex Lock**: Thread-safe `m_cacheMutex` locking protects `m_localIPs` from data races during VPN tunnel connections or dynamic network interface changes.
+- **WinSock Buffer Overflow & Null Guard**: Handles `ERROR_BUFFER_OVERFLOW` in `GetAdaptersAddresses` and enforces socket checks to prevent crashes.
+
+### ⚙️ Windows Service Control Manager Integration
+- **Service vs Application Resolution**: Smartly differentiates between standard `.exe` applications and Windows Services (`Service: <ServiceName>`).
+- **Service Control Actions**: Context menu provides **Stop Service**, **Restart Service**, **Disable Service**, and **Start / Enable Service** for services, while preserving **Kill Process (End Task)** for regular applications.
+
+### ℹ️ Responsive Process Properties Dialog
+- **WordWrap Text Formatting**: Enabled multi-line text wrapping (`setWordWrap(true)`) for long process/service names and file paths to prevent text truncation.
+- **Crisp Icon Display**: Expanded process icon display to 128x128.
+
+### ⚠️ 1-Click Reset All Settings to Defaults
+- **Reset Button**: Added `btnResetAllSettings` in General Settings tab to clear QSettings, purge registry startup keys/tasks, and restore default configurations.
+
+### 📦 Embedded Ready_JsonProfiles Auto-Extraction
+- **Resource Bundle**: All 7 pre-built firewall JSON profiles are compiled directly inside `resources.qrc`.
+- **Automatic Disk Extraction**: Automatically extracts profiles to `Ready_JsonProfiles/` directory next to `UltimateNetGuard.exe` upon installation or launch.
+
+---
+
+## 🆕 What's New in v1.2.1
+
+<div align="center">
+
+> **🌐 Multi-Socket `Select All` Capture · 📡 Multicast Traffic Filter · ⚡ Zero-Spike Speed Engine · 🛡️ Elevated Task Scheduler AutoStart**
+
+</div>
+
+### 🌐 Multi-Socket Raw Network Capture (`Select All` Mode)
+- **Multi-Socket Capture Array**: Binds raw promiscuous sockets (`s4`, `s6`) to every active local IP address on the system simultaneously.
+- **Zero Packet Loss**: Captures and routes 100% of real-time TCP and UDP data streams across all active network adapters (Ethernet, Wi-Fi, VPN) without dropped packets or `0.0.0.0` WinSock driver limitations.
+
+### 📡 Multicast & Broadcast LAN Traffic Classification
+- **Smart LAN Multicast Filter**: Identifies local multicast/broadcast addresses (`224.0.0.0/4`, `239.255.255.250`, `255.255.255.255`, `ff00::/8`) used by SSDP, mDNS, and LLMNR.
+- **Zero Fake Upload Spikes**: Prevents incoming local network multicast bursts from being incorrectly classified as external internet uploads under `System Services / Network Overhead`.
+
+### ⚡ Deduplicated Speed Calculation & Metric Synchronization
+- **Adapter Index Deduplication**: Queries `GetIfEntry2` strictly once per unique interface index (`QSet<quint32> processedIndexes`), eliminating 5x-10x duplicate speed spikes.
+- **100% UI Metric Alignment**: Synchronizes top header cards, status bar, and Taskbar Overlay totals directly with process table totals (`getTotalRxSpeed()`, `getTotalTxSpeed()`).
+
+### 🛡️ Elevated UAC-Bypassing AutoStart
+- **Windows Task Scheduler Integration**: Creates native logon task `NetGuardAutoStart` with `/rl HIGHEST`, allowing NetGuard to launch elevated on Windows startup without UAC prompts.
+- **Safe Native Pathing**: Full native pathing with quote protection for installation directories with spaces (e.g. `C:\Program Files\...`).
+
+### ⚙️ Virtual Adapter Filtering Toggle Setting
+- **User Preference**: Added `chkFilterVirtualAdapters` check box in Settings Tab UI (`Network/FilterVirtualAdapters`).
+- **Flexible Adapter View**: Users can toggle virtual adapter filtering on or off at any time.
 
 ---
 
