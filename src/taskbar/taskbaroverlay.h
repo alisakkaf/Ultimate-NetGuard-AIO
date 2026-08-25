@@ -33,6 +33,7 @@ public:
 
     void setCustomStyle(int fontSize, const QString &textColor, int bgOpacity, const QColor &bgColor);
     void setOverlayVisible(bool visible);
+    void resetPosition();
 
     // ── Hardware display mode flags ──
     void setShowCpu(bool show);
