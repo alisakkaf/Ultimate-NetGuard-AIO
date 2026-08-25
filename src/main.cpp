@@ -10,6 +10,7 @@
 */
 
 // -- Windows first ------------------------------------------------------------
+#include "networkmonitor.h"
 #ifndef _WIN32_WINNT
 #  define _WIN32_WINNT 0x0601
 #endif
@@ -158,6 +159,8 @@ int main(int argc, char *argv[])
     }
     // Running from install dir → ensure version.dat is current
     AppInstaller::run();
+
+    qRegisterMetaType<QList<CapturedPacketInfo>>("QList<CapturedPacketInfo>");
 
     // -- Show main window -----------------------------------------------------
     MainWindow w;
