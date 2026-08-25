@@ -2,5 +2,12 @@
     <qresource prefix="/">
         <file>icons/app.ico</file>
         <file>icons/Ultimate_NetGuard_AIO.png</file>
+        <file>Ready_JsonProfiles/Global_Workspace_Shield.json</file>
+        <file>Ready_JsonProfiles/Master_Developer_Sandbox.json</file>
+        <file>Ready_JsonProfiles/Offline_Isolation_Blacklist.json</file>
+        <file>Ready_JsonProfiles/P2P_Media_Vanguard.json</file>
+        <file>Ready_JsonProfiles/README.md</file>
+        <file>Ready_JsonProfiles/Ultimate_Esports_Nexus.json</file>
+        <file>Ready_JsonProfiles/ZeroTrust_Privacy_Citadel.json</file>
     </qresource>
 </RCC>
