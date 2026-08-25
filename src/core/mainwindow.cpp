@@ -18,6 +18,7 @@
 #include "taskbar/taskbaroverlay.h"
 
 #include <QCloseEvent>
+#include <QProcess>
 #include <windows.h>
 #include <shellapi.h>
 #include <QtWin>
@@ -81,6 +82,15 @@ MainWindow::MainWindow(QWidget *parent)
         saveSettings();
     });
     connect(ui->chkStartMinimized, &QCheckBox::toggled, this, &MainWindow::saveSettings);
+    connect(ui->chkFilterVirtualAdapters, &QCheckBox::toggled, this, [this](bool checked){
+        if (m_netWidget) {
+            m_netWidget->setFilterVirtualAdapters(checked);
+            if (m_overlay) {
+                m_overlay->setAdapterList(m_netWidget->getAdapterList());
+            }
+        }
+        saveSettings();
+    });
 
     connect(ui->chkEnableOverlay, &QCheckBox::toggled, this, &MainWindow::applySettingsToOverlay);
     connect(ui->spinOverlayFontSize, QOverload<int>::of(&QSpinBox::valueChanged), this, &MainWindow::applySettingsToOverlay);
@@ -95,6 +105,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(ui->cmbOverlayRamFormat, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::applySettingsToOverlay);
     connect(ui->cmbOverlayGpuSelect, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::applySettingsToOverlay);
+
+    connect(ui->btnResetAllSettings, &QPushButton::clicked, this, &MainWindow::onResetAllSettings);
 
     // ── Populate GPU combo with detected GPU names ──
     {
@@ -502,8 +514,17 @@ void MainWindow::loadSettings()
 {
     QSettings settings("AliSakkaf", "NetGuardAIO");
 
-    ui->chkRunAtStartup->setChecked(settings.value("General/RunAtStartup", true).toBool());
+    bool runAtStartup = settings.value("General/RunAtStartup", true).toBool();
+    ui->chkRunAtStartup->setChecked(runAtStartup);
+    applyRunAtStartup(runAtStartup);
+
     ui->chkStartMinimized->setChecked(settings.value("General/StartMinimized", false).toBool());
+
+    bool filterVirt = settings.value("Network/FilterVirtualAdapters", true).toBool();
+    ui->chkFilterVirtualAdapters->setChecked(filterVirt);
+    if (m_netWidget) {
+        m_netWidget->setFilterVirtualAdapters(filterVirt);
+    }
 
     bool isDark = settings.value("General/DarkTheme", true).toBool();
     if (!isDark && StyleManager::instance().isDark()) {
@@ -538,6 +559,8 @@ void MainWindow::saveSettings()
     settings.setValue("General/RunAtStartup", ui->chkRunAtStartup->isChecked());
     settings.setValue("General/StartMinimized", ui->chkStartMinimized->isChecked());
     settings.setValue("General/DarkTheme", StyleManager::instance().isDark());
+
+    settings.setValue("Network/FilterVirtualAdapters", ui->chkFilterVirtualAdapters->isChecked());
 
     settings.setValue("Overlay/Enabled", ui->chkEnableOverlay->isChecked());
     settings.setValue("Overlay/FontSize", ui->spinOverlayFontSize->value());
@@ -600,14 +623,60 @@ void MainWindow::applySettingsToOverlay()
 
 void MainWindow::applyRunAtStartup(bool enable)
 {
-    QSettings boot("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run", QSettings::NativeFormat);
-    if (enable) {
-        // Always use the canonical installed path (Program Files\NetGuard)
-        QString appPath = QDir::toNativeSeparators(AppInstaller::installedExePath());
-        boot.setValue("NetGuardAIO", "\"" + appPath + "\"");
-    } else {
-        boot.remove("NetGuardAIO");
+    if (!enable) {
+        QSettings settings("AliSakkaf", "NetGuardAIO");
+        settings.setValue("General/RunAtStartup", false);
     }
+    AppInstaller::syncAutoStart(enable);
+}
+
+void MainWindow::onResetAllSettings()
+{
+    if (QMessageBox::question(this, "Reset All Settings",
+                              "Are you sure you want to reset all application settings, startup registry keys, and overlay configuration to default values?",
+                              QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes) {
+        return;
+    }
+
+    // 1. Clear QSettings
+    QSettings settings("AliSakkaf", "NetGuardAIO");
+    settings.clear();
+
+    // 2. Clean startup entries & Task Scheduler
+    applyRunAtStartup(false);
+
+    // 3. Reset UI Checkboxes & Controls
+    ui->chkRunAtStartup->setChecked(true);
+    ui->chkStartMinimized->setChecked(false);
+    ui->chkFilterVirtualAdapters->setChecked(true);
+
+    ui->chkEnableOverlay->setChecked(true);
+    ui->spinOverlayFontSize->setValue(8);
+    ui->spinOverlayOpacity->setValue(0);
+    ui->cmbOverlayTextColor->setCurrentText("White");
+    ui->cmbOverlayBgColor->setCurrentText("Transparent");
+
+    ui->chkOverlayCpu->setChecked(false);
+    ui->chkOverlayRam->setChecked(false);
+    ui->chkOverlayGpu->setChecked(false);
+    ui->chkOverlayTemps->setChecked(false);
+
+    ui->cmbOverlayRamFormat->setCurrentIndex(2); // GB
+    ui->cmbOverlayGpuSelect->setCurrentIndex(0); // Auto
+
+    if (m_netWidget) {
+        m_netWidget->setFilterVirtualAdapters(true);
+    }
+
+    if (m_overlay) {
+        m_overlay->resetPosition();
+    }
+
+    // 4. Save and Apply defaults
+    saveSettings();
+    applyRunAtStartup(true);
+
+    QMessageBox::information(this, "Reset Complete", "All settings have been successfully reset to defaults.");
 }
 
 // ============================================================================
@@ -718,7 +787,50 @@ void MainWindow::onHardwareSnapshot(const HardwareSnapshot &snap)
 void MainWindow::animateLiveBadge()
 {
     m_badgeLit = !m_badgeLit;
-    ui->liveBadge->setStyleSheet(m_badgeLit ? "color:#2EA043; font-weight:700; font-size:8pt;" : "color:#1A3A22; font-weight:700; font-size:8pt;");
+    // ui->liveBadge->setStyleSheet(m_badgeLit ? "color:#2EA043; font-weight:700; font-size:8pt;" : "color:#1A3A22; font-weight:700; font-size:8pt;");
+
+    QTimer *existingTimer = ui->liveBadge->findChild<QTimer*>("LiveAnimTimer");
+    if (existingTimer) {
+        existingTimer->stop();
+        existingTimer->deleteLater();
+    }
+
+    QTimer *animTimer = new QTimer(ui->liveBadge);
+    animTimer->setObjectName("LiveAnimTimer");
+    int *step = new int(0);
+    const int totalSteps = 20;
+
+    QObject::connect(animTimer, &QTimer::timeout, ui->liveBadge, [=]() mutable {
+        (*step)++;
+        qreal p = static_cast<qreal>(*step) / totalSteps;
+        if (!m_badgeLit) p = 1.0 - p;
+
+        qreal ease = p * p * (3.0 - 2.0 * p);
+
+        int textAndBorderAlpha = 80 + static_cast<int>(175 * ease);
+        int bgAlpha = 5 + static_cast<int>(30 * ease);
+
+        ui->liveBadge->setStyleSheet(QString(
+                                         "QLabel {"
+                                         "  color: rgba(46, 160, 67, %1);"
+                                         "  background-color: rgba(46, 160, 67, %2);"
+                                         "  border: 1px solid rgba(46, 160, 67, %1);"
+                                         "  border-radius: 5px;"
+                                         "  padding: 4px 14px;"
+                                         "  font-weight: 700;"
+                                         "  font-size: 11pt;"
+                                         "  min-width: 50px;"
+                                         "}"
+                                         ).arg(textAndBorderAlpha).arg(bgAlpha));
+
+        if (*step >= totalSteps) {
+            animTimer->stop();
+            animTimer->deleteLater();
+            delete step;
+        }
+    });
+
+    animTimer->start(16);
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
