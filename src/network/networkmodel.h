@@ -69,6 +69,9 @@ public:
     void setProcessIcon(const QString &procName, const QIcon &icon);
     void clear();
 
+    quint64 getTotalRxSpeed() const { return m_totalRxSpeed; }
+    quint64 getTotalTxSpeed() const { return m_totalTxSpeed; }
+
     static QString formatSpeed(quint64 bps);
     static QString formatBytes(quint64 bytes);
 
@@ -82,4 +85,6 @@ private:
     QVector<ProcessNode> m_procs;
     QHash<QString, int>  m_procIdx;
     QTimer              *m_ticker = nullptr;
+    quint64              m_totalRxSpeed = 0;
+    quint64              m_totalTxSpeed = 0;
 };
