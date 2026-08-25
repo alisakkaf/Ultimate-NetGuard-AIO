@@ -36,6 +36,12 @@ public:
     /// Read the version string stored in version.dat next to the installed exe
     static QString readInstalledVersion();
 
+    /// Clean legacy registry keys and synchronize AutoStart (Task Scheduler + Registry)
+    static void syncAutoStart(bool forceEnable = false);
+
+    /// Extract embedded Ready_JsonProfiles from qrc to disk
+    static void extractProfiles();
+
     /**
      * @brief  Entry point called from main() BEFORE MainWindow.
      * @return true  → continue normal startup (we are in install dir)
