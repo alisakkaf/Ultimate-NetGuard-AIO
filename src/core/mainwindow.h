@@ -55,6 +55,7 @@ private slots:
     void saveSettings();
     void applySettingsToOverlay();
     void applyRunAtStartup(bool enable);
+    void onResetAllSettings();
 
     void onExportHistory();
     void onClearHistory();
