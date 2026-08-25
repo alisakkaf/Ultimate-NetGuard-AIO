@@ -38,8 +38,9 @@ public:
     explicit NetworkMonitor(QObject *parent = nullptr);
     ~NetworkMonitor() override;
 
-    static QList<AdapterInfo> enumerateAdapters();
-    static int recommendedAdapterIndex(const QList<AdapterInfo> &list);
+    static bool isVirtualAdapter(const QString &description);
+    static QList<AdapterInfo> enumerateAdapters(bool filterVirtual = true);
+    static int recommendedAdapterIndex(const QList<AdapterInfo> &list, bool filterVirtual = true);
 
     void setAdapterIP(const QString &ip);
     void startCapture();
