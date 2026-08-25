@@ -8,7 +8,7 @@
 
 // ─── Version Numbers ─────────────────────────────────────────────────────────
 #define APP_VERSION_MAJOR   1
-#define APP_VERSION_MINOR   2
+#define APP_VERSION_MINOR   3
 #define APP_VERSION_PATCH   0
 #define APP_VERSION_BUILD   0
 
@@ -16,8 +16,8 @@
 #define APP_VERSION_RC      APP_VERSION_MAJOR,APP_VERSION_MINOR,APP_VERSION_PATCH,APP_VERSION_BUILD
 
 // String versions
-#define APP_VERSION_STR     "1.2.0"
-#define APP_VERSION_RC_STR  "1.2.0.0"
+#define APP_VERSION_STR     "1.3.0"
+#define APP_VERSION_RC_STR  "1.3.0.0"
 
 // ─── Application Identity ────────────────────────────────────────────────────
 #define APP_NAME            "Ultimate NetGuard AIO"
@@ -36,4 +36,4 @@
 #define APP_FACEBOOK        "https://www.facebook.com/AliSakkaf.Dev/"
 
 // ─── Display String (used in UI header versionLabel) ─────────────────────────
-#define APP_VERSION_DISPLAY "V1.2.0 | By AliSakkaf"
+#define APP_VERSION_DISPLAY "V1.3.0 | By AliSakkaf"
