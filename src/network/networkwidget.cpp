@@ -30,14 +30,94 @@
 #include <QPalette>
 #include <QVariant>
 #include <QPixmap>
-
 #ifndef _WIN32_WINNT
 #  define _WIN32_WINNT 0x0601
 #endif
 #include <windows.h>
+#include <winsvc.h>
 #include <shellapi.h>
 #include <psapi.h>
 #include <QtWin>
+#include <vector>
+
+// ============================================================================
+// ── Windows Service Manager ──
+// ============================================================================
+class WindowsServiceManager {
+public:
+    static QString getServiceKeyName(const QString &displayName) {
+        SC_HANDLE hSCM = OpenSCManagerW(nullptr, nullptr, SC_MANAGER_CONNECT);
+        if (!hSCM) return displayName;
+
+        std::wstring wDisp = displayName.toStdWString();
+        DWORD dwSize = 0;
+        GetServiceKeyNameW(hSCM, wDisp.c_str(), nullptr, &dwSize);
+        if (dwSize > 0) {
+            std::vector<wchar_t> buf(dwSize + 1);
+            if (GetServiceKeyNameW(hSCM, wDisp.c_str(), buf.data(), &dwSize)) {
+                CloseServiceHandle(hSCM);
+                return QString::fromWCharArray(buf.data());
+            }
+        }
+        CloseServiceHandle(hSCM);
+        return displayName;
+    }
+
+    static bool stopService(const QString &svcName) {
+        QString keyName = getServiceKeyName(svcName);
+        SC_HANDLE hSCM = OpenSCManagerW(nullptr, nullptr, SC_MANAGER_CONNECT);
+        if (!hSCM) return false;
+        SC_HANDLE hSvc = OpenServiceW(hSCM, keyName.toStdWString().c_str(), SERVICE_STOP | SERVICE_QUERY_STATUS);
+        if (!hSvc) {
+            CloseServiceHandle(hSCM);
+            return (QProcess::execute("net", {"stop", keyName}) == 0);
+        }
+        SERVICE_STATUS status;
+        bool ok = ControlService(hSvc, SERVICE_CONTROL_STOP, &status);
+        CloseServiceHandle(hSvc);
+        CloseServiceHandle(hSCM);
+        if (!ok) QProcess::execute("net", {"stop", keyName});
+        return true;
+    }
+
+    static bool startService(const QString &svcName) {
+        QString keyName = getServiceKeyName(svcName);
+        SC_HANDLE hSCM = OpenSCManagerW(nullptr, nullptr, SC_MANAGER_CONNECT);
+        if (!hSCM) return false;
+        SC_HANDLE hSvc = OpenServiceW(hSCM, keyName.toStdWString().c_str(), SERVICE_START);
+        if (!hSvc) {
+            CloseServiceHandle(hSCM);
+            return (QProcess::execute("net", {"start", keyName}) == 0);
+        }
+        bool ok = StartServiceW(hSvc, 0, nullptr);
+        CloseServiceHandle(hSvc);
+        CloseServiceHandle(hSCM);
+        if (!ok) QProcess::execute("net", {"start", keyName});
+        return true;
+    }
+
+    static bool restartService(const QString &svcName) {
+        stopService(svcName);
+        QThread::msleep(1000);
+        return startService(svcName);
+    }
+
+    static bool setServiceDisabled(const QString &svcName, bool disable) {
+        QString keyName = getServiceKeyName(svcName);
+        SC_HANDLE hSCM = OpenSCManagerW(nullptr, nullptr, SC_MANAGER_ALL_ACCESS);
+        if (!hSCM) return false;
+        SC_HANDLE hSvc = OpenServiceW(hSCM, keyName.toStdWString().c_str(), SERVICE_CHANGE_CONFIG);
+        if (!hSvc) {
+            CloseServiceHandle(hSCM);
+            return (QProcess::execute("sc", {"config", keyName, "start=", disable ? "disabled" : "demand"}) == 0);
+        }
+        bool ok = ChangeServiceConfigW(hSvc, SERVICE_NO_CHANGE, disable ? SERVICE_DISABLED : SERVICE_DEMAND_START, SERVICE_NO_CHANGE, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
+        CloseServiceHandle(hSvc);
+        CloseServiceHandle(hSCM);
+        if (!ok) QProcess::execute("sc", {"config", keyName, "start=", disable ? "disabled" : "demand"});
+        return ok;
+    }
+};
 
 // ============================================================================
 // ── Elevate Permissions to allow reading Process Paths (Crucial for Icons) ──
@@ -67,7 +147,7 @@ ProcessInfoDialog::ProcessInfoDialog(const QString &name, quint32 pid, const QSt
 {
     setWindowTitle("Process Properties");
     setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
-    setMinimumWidth(520);
+    setMinimumWidth(640);
 
     // ── Dynamic Theme Palette ──
     bool isDark = (StyleManager::instance().currentMode() == AppTheme::Dark);
@@ -98,22 +178,25 @@ ProcessInfoDialog::ProcessInfoDialog(const QString &name, quint32 pid, const QSt
     // ── Header (Icon, Name, Type) ──
     QHBoxLayout *headerLayout = new QHBoxLayout();
     QLabel *iconLabel = new QLabel();
-    iconLabel->setPixmap(icon.pixmap(150, 150));
+    iconLabel->setPixmap(icon.pixmap(45, 45));
+    iconLabel->setFixedSize(45, 45);
+    iconLabel->setScaledContents(true);
     headerLayout->addWidget(iconLabel);
 
     QVBoxLayout *nameLayout = new QVBoxLayout();
-    QLineEdit *nameEdit = new QLineEdit(name);
-    nameEdit->setReadOnly(true);
-    nameEdit->setStyleSheet("font-size: 13pt; font-weight: bold;");
+    QLabel *nameLabel = new QLabel(name);
+    nameLabel->setWordWrap(true);
+    nameLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    nameLabel->setStyleSheet("font-size: 13pt; font-weight: bold;");
 
     QString typeStr = "Application (EXE)";
     if (pid == 0 || pid == 4) typeStr = "System OS / Kernel Overhead";
     else if (name.startsWith("Service:")) typeStr = "Windows Service";
 
     QLabel *typeLabel = new QLabel(typeStr);
-    typeLabel->setStyleSheet(QString("color: %1;").arg(textMuted));
+    typeLabel->setStyleSheet(QString("color: %1; font-weight: bold;").arg(textMuted));
 
-    nameLayout->addWidget(nameEdit);
+    nameLayout->addWidget(nameLabel);
     nameLayout->addWidget(typeLabel);
     nameLayout->addStretch();
 
@@ -134,10 +217,10 @@ ProcessInfoDialog::ProcessInfoDialog(const QString &name, quint32 pid, const QSt
     pidEdit->setReadOnly(true);
     formLayout->addRow("<b>Process ID:</b>", pidEdit);
 
-    QLineEdit *pathEdit = new QLineEdit(path.isEmpty() ? "N/A (System / Protected)" : path);
-    pathEdit->setReadOnly(true);
-    pathEdit->setCursorPosition(0);
-    formLayout->addRow("<b>File Path:</b>", pathEdit);
+    QLabel *pathLabel = new QLabel(path.isEmpty() ? "N/A (System / Protected)" : path);
+    pathLabel->setWordWrap(true);
+    pathLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    formLayout->addRow("<b>File Path:</b>", pathLabel);
 
     mainLayout->addLayout(formLayout);
 
@@ -199,66 +282,50 @@ NetworkWidget::NetworkWidget(QWidget *parent)
     QString appPath = QDir::toNativeSeparators(QCoreApplication::applicationFilePath());
     QProcess::execute("netsh", {"advfirewall", "firewall", "add", "rule", "name=NetGuardAIO", "dir=in", "action=allow", "program=" + appPath, "enable=yes"});
 
-    qRegisterMetaType<QList<CapturedPacketInfo>>("QList<CapturedPacketInfo>");
+    // ── Elevate Process Privileges ──
+    EnableDebugPrivilege();
+
+    m_monitor = new NetworkMonitor(this);
+
+    connect(m_monitor, &NetworkMonitor::speedUpdated,          this, &NetworkWidget::onSpeedUpdated);
+    connect(m_monitor, &NetworkMonitor::packetsCapturedBatch,  this, &NetworkWidget::onPacketsCapturedBatch);
+    connect(m_monitor, &NetworkMonitor::captureStarted,       this, &NetworkWidget::onCaptureStarted);
+    connect(m_monitor, &NetworkMonitor::captureStopped,       this, &NetworkWidget::onCaptureStopped);
+    connect(m_monitor, &NetworkMonitor::captureError,         this, &NetworkWidget::onCaptureError);
 
     m_model = new NetworkTreeModel(this);
     m_proxy = new QSortFilterProxyModel(this);
     m_proxy->setSourceModel(m_model);
-    m_proxy->setFilterCaseSensitivity(Qt::CaseInsensitive);
-    m_proxy->setFilterKeyColumn(-1);
     m_proxy->setRecursiveFilteringEnabled(true);
-
-    // ── FIX: Set the custom SortRole for precise numeric sorting ──
-    m_proxy->setSortRole(Qt::UserRole + 5);
+    m_proxy->setFilterCaseSensitivity(Qt::CaseInsensitive);
 
     ui->treeView->setModel(m_proxy);
-    ui->treeView->setUniformRowHeights(true);
-    ui->treeView->setAnimated(true);
-    ui->treeView->setExpandsOnDoubleClick(true);
-    ui->treeView->setRootIsDecorated(true);
-    ui->treeView->setAlternatingRowColors(false);
-    ui->treeView->setIconSize(QSize(18, 18));
-    ui->treeView->setIndentation(24);
-    ui->treeView->setItemsExpandable(true);
     ui->treeView->setSortingEnabled(true);
-    ui->treeView->setSelectionBehavior(QAbstractItemView::SelectRows);
-    ui->treeView->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->treeView->sortByColumn(COL_BYTES, Qt::DescendingOrder);
+
+    ui->treeView->header()->setSectionResizeMode(COL_NAME,  QHeaderView::Stretch);
+    ui->treeView->header()->setSectionResizeMode(COL_SRC,   QHeaderView::ResizeToContents);
+    ui->treeView->header()->setSectionResizeMode(COL_DST,   QHeaderView::ResizeToContents);
+    ui->treeView->header()->setSectionResizeMode(COL_SRC,   QHeaderView::ResizeToContents);
+    ui->treeView->header()->setSectionResizeMode(COL_RX,    QHeaderView::ResizeToContents);
+    ui->treeView->header()->setSectionResizeMode(COL_TX,    QHeaderView::ResizeToContents);
+    ui->treeView->header()->setSectionResizeMode(COL_BYTES, QHeaderView::ResizeToContents);
+    ui->treeView->header()->setSectionResizeMode(COL_PKTS,  QHeaderView::ResizeToContents);
 
     ui->treeView->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(ui->treeView, &QTreeView::customContextMenuRequested, this, &NetworkWidget::onTreeViewContextMenu);
 
-    QHeaderView *hv = ui->treeView->header();
-    hv->setMinimumSectionSize(50);
-    hv->setSectionResizeMode(0, QHeaderView::Interactive);       // COL_NAME
-    hv->setSectionResizeMode(1, QHeaderView::ResizeToContents);  // COL_SRC
-    hv->setSectionResizeMode(2, QHeaderView::ResizeToContents);  // COL_DST
-    hv->setSectionResizeMode(3, QHeaderView::ResizeToContents);  // COL_SERVICE
-    hv->setSectionResizeMode(4, QHeaderView::Fixed);             // COL_RX
-    hv->setSectionResizeMode(5, QHeaderView::Fixed);             // COL_TX
-    hv->setSectionResizeMode(6, QHeaderView::ResizeToContents);  // COL_BYTES
-    hv->setSectionResizeMode(7, QHeaderView::Stretch);           // COL_PKTS
-
-    hv->resizeSection(0, 260); // COL_NAME
-    hv->resizeSection(4, 110); // COL_RX
-    hv->resizeSection(5, 110); // COL_TX
-    hv->setHighlightSections(false);
-    hv->setDefaultAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-
-    m_monitor = new NetworkMonitor(this);
-
-    connect(m_monitor, &NetworkMonitor::packetsCapturedBatch, this, &NetworkWidget::onPacketsCapturedBatch, Qt::QueuedConnection);
-    connect(m_monitor, &NetworkMonitor::speedUpdated, this, &NetworkWidget::onSpeedUpdated, Qt::QueuedConnection);
-    connect(m_monitor, &NetworkMonitor::captureError, this, &NetworkWidget::onCaptureError, Qt::QueuedConnection);
-    connect(m_monitor, &NetworkMonitor::captureStarted, this, &NetworkWidget::onCaptureStarted, Qt::QueuedConnection);
-    connect(m_monitor, &NetworkMonitor::captureStopped, this, &NetworkWidget::onCaptureStopped, Qt::QueuedConnection);
-
-    connect(ui->cmbAdapter, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &NetworkWidget::onAdapterChanged);
     connect(ui->btnStartStop, &QPushButton::clicked, this, &NetworkWidget::onStartStop);
-    connect(ui->btnClear, &QPushButton::clicked, this, &NetworkWidget::onClearTable);
-    connect(ui->btnExpandAll, &QPushButton::clicked, this, &NetworkWidget::onExpandAll);
-    connect(ui->edtFilter, &QLineEdit::textChanged, this, &NetworkWidget::onFilterChanged);
+    connect(ui->btnClear,     &QPushButton::clicked, this, &NetworkWidget::onClearTable);
+    connect(ui->btnExpandAll, &QPushButton::clicked, this, [this]() {
+        static bool expanded = false;
+        if (!expanded) { ui->treeView->expandAll(); ui->btnExpandAll->setText("Collapse All"); }
+        else           { ui->treeView->collapseAll(); ui->btnExpandAll->setText("Expand All"); }
+        expanded = !expanded;
+    });
 
-    // ── Auto-refresh adapters when the ComboBox dropdown is opened ──
+    connect(ui->edtFilter, &QLineEdit::textChanged, this, &NetworkWidget::onFilterChanged);
+    connect(ui->cmbAdapter, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &NetworkWidget::onAdapterChanged);
     ui->cmbAdapter->installEventFilter(this);
 
     populateAdapterCombo();
@@ -302,7 +369,55 @@ void NetworkWidget::onTreeViewContextMenu(const QPoint &pos)
             );
     }
 
-    if (pid != 0 && pid != 4) {
+    bool isServiceNode = name.startsWith("Service:") || (name.compare("svchost.exe", Qt::CaseInsensitive) == 0);
+    QString serviceCleanName = name.startsWith("Service:") ? name.mid(8).trimmed() : QString();
+
+    if (isServiceNode && !serviceCleanName.isEmpty()) {
+        QAction *actStop = menu.addAction("⏹ Stop Service");
+        connect(actStop, &QAction::triggered, this, [this, serviceCleanName]() {
+            if (QMessageBox::question(this, "Stop Service", QString("Are you sure you want to stop service '%1'?").arg(serviceCleanName)) == QMessageBox::Yes) {
+                if (WindowsServiceManager::stopService(serviceCleanName)) {
+                    QMessageBox::information(this, "Service Control", "Service stop command sent successfully.");
+                } else {
+                    QMessageBox::warning(this, "Error", "Could not stop service. Make sure you run as Administrator.");
+                }
+            }
+        });
+
+        QAction *actRestart = menu.addAction("🔄 Restart Service");
+        connect(actRestart, &QAction::triggered, this, [this, serviceCleanName]() {
+            if (QMessageBox::question(this, "Restart Service", QString("Are you sure you want to restart service '%1'?").arg(serviceCleanName)) == QMessageBox::Yes) {
+                if (WindowsServiceManager::restartService(serviceCleanName)) {
+                    QMessageBox::information(this, "Service Control", "Service restarted successfully.");
+                } else {
+                    QMessageBox::warning(this, "Error", "Could not restart service. Make sure you run as Administrator.");
+                }
+            }
+        });
+
+        QAction *actDisable = menu.addAction("🚫 Disable Service");
+        connect(actDisable, &QAction::triggered, this, [this, serviceCleanName]() {
+            if (QMessageBox::question(this, "Disable Service", QString("Are you sure you want to set service '%1' startup type to Disabled?").arg(serviceCleanName)) == QMessageBox::Yes) {
+                if (WindowsServiceManager::setServiceDisabled(serviceCleanName, true)) {
+                    QMessageBox::information(this, "Service Control", "Service startup type set to Disabled.");
+                } else {
+                    QMessageBox::warning(this, "Error", "Could not disable service. Make sure you run as Administrator.");
+                }
+            }
+        });
+
+        QAction *actStart = menu.addAction("▶ Start / Enable Service");
+        connect(actStart, &QAction::triggered, this, [this, serviceCleanName]() {
+            WindowsServiceManager::setServiceDisabled(serviceCleanName, false);
+            if (WindowsServiceManager::startService(serviceCleanName)) {
+                QMessageBox::information(this, "Service Control", "Service started successfully.");
+            } else {
+                QMessageBox::warning(this, "Error", "Could not start service. Make sure you run as Administrator.");
+            }
+        });
+
+        menu.addSeparator();
+    } else if (pid != 0 && pid != 4) {
         QAction *actKill = menu.addAction("☠ Kill Process (End Task)");
         connect(actKill, &QAction::triggered, this, [this, pid]() {
             if (QMessageBox::question(this, "Kill Process", QString("Are you sure you want to forcibly terminate PID %1?").arg(pid)) == QMessageBox::Yes) {
@@ -345,33 +460,41 @@ void NetworkWidget::onTreeViewContextMenu(const QPoint &pos)
     menu.exec(ui->treeView->viewport()->mapToGlobal(pos));
 }
 
+void NetworkWidget::setFilterVirtualAdapters(bool filterVirtual) {
+    m_filterVirtualAdapters = filterVirtual;
+    populateAdapterCombo();
+}
+
 void NetworkWidget::autoStart() {
-    if (m_adapters.isEmpty()) populateAdapterCombo();
-    if (m_adapters.isEmpty()) return;
-    ui->cmbAdapter->setCurrentIndex(0); // Smart Auto-Detect
-    onAdapterChanged(0);
+    populateAdapterCombo();
+    if (ui->cmbAdapter->count() > 0) {
+        ui->cmbAdapter->setCurrentIndex(0); // Smart Auto-Detect
+        onAdapterChanged(0);
+    }
     m_monitor->startCapture();
 }
-void NetworkWidget::populateAdapterCombo() {
-    QString prevIP;
-    if (ui->cmbAdapter->currentIndex() >= 0)
-        prevIP = ui->cmbAdapter->currentData().toString();
 
-    m_adapters = NetworkMonitor::enumerateAdapters();
+void NetworkWidget::populateAdapterCombo() {
+    QString prevData;
+    if (ui->cmbAdapter && ui->cmbAdapter->currentIndex() >= 0)
+        prevData = ui->cmbAdapter->currentData().toString();
+
+    m_adapters = NetworkMonitor::enumerateAdapters(m_filterVirtualAdapters);
     ui->cmbAdapter->blockSignals(true);
     ui->cmbAdapter->clear();
 
-    // ── Smart Auto-Detect option at Index 0 ──
+    // ── Smart Auto-Detect & Select All Options ──
     ui->cmbAdapter->addItem("⚡ Smart Auto-Detect (Auto)", "AUTO");
+    ui->cmbAdapter->addItem("🌐 All Network Adapters (Select All)", "ALL");
 
     for (const auto &ai : m_adapters)
         ui->cmbAdapter->addItem(ai.description, ai.ip);
     ui->cmbAdapter->blockSignals(false);
 
     int restoreIdx = 0; // Default to Auto
-    if (!prevIP.isEmpty() && prevIP != "AUTO") {
+    if (!prevData.isEmpty()) {
         for (int i = 0; i < ui->cmbAdapter->count(); ++i) {
-            if (ui->cmbAdapter->itemData(i).toString() == prevIP) { restoreIdx = i; break; }
+            if (ui->cmbAdapter->itemData(i).toString() == prevData) { restoreIdx = i; break; }
         }
     }
 
@@ -405,11 +528,14 @@ void NetworkWidget::onAdapterChanged(int idx) {
     QString targetIP;
 
     if (selectedData == "AUTO") {
-        int bestIdx = NetworkMonitor::recommendedAdapterIndex(m_adapters);
+        int bestIdx = NetworkMonitor::recommendedAdapterIndex(m_adapters, m_filterVirtualAdapters);
         if (bestIdx >= 0 && bestIdx < m_adapters.size()) {
             targetIP = m_adapters[bestIdx].ip;
             ui->lblStatus->setText("⚡ Auto-Detecting: " + m_adapters[bestIdx].description);
         }
+    } else if (selectedData == "ALL") {
+        targetIP = "ALL";
+        ui->lblStatus->setText("🌐 Capturing All Network Interfaces (Select All)");
     } else {
         targetIP = selectedData;
         ui->lblStatus->setText("Selected Adapter: " + ui->cmbAdapter->currentText());
@@ -482,9 +608,15 @@ void NetworkWidget::onPacketsCapturedBatch(const QList<CapturedPacketInfo> &batc
 }
 
 void NetworkWidget::onSpeedUpdated(quint64 rxBps, quint64 txBps) {
-    ui->lblRxVal->setText(NetworkTreeModel::formatSpeed(rxBps));
-    ui->lblTxVal->setText(NetworkTreeModel::formatSpeed(txBps));
-    emit speedUpdated(rxBps, txBps);
+    quint64 modelRx = m_model ? m_model->getTotalRxSpeed() : 0;
+    quint64 modelTx = m_model ? m_model->getTotalTxSpeed() : 0;
+
+    quint64 finalRx = qMax(rxBps, modelRx);
+    quint64 finalTx = (modelTx > 0) ? qMax(modelTx, qMin(txBps, modelTx * 3 + 10240)) : qMin(txBps, static_cast<quint64>(20480));
+
+    ui->lblRxVal->setText(NetworkTreeModel::formatSpeed(finalRx));
+    ui->lblTxVal->setText(NetworkTreeModel::formatSpeed(finalTx));
+    emit speedUpdated(finalRx, finalTx);
 }
 // void NetworkWidget::onCaptureError(const QString &msg) { ui->lblStatus->setText("⚠ " + msg); QMessageBox::critical(this, "Capture Error", msg); onCaptureStopped(); }
 
