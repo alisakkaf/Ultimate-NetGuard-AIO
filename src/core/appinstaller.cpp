@@ -13,6 +13,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QProcess>
+#include <QSettings>
 #include <QStandardPaths>
 #include <QThread>
 #include <QVBoxLayout>
@@ -93,15 +94,117 @@ void AppInstaller::setFullPermissions(const QString &path)
         QFileDevice::ReadOther  | QFileDevice::WriteOther  | QFileDevice::ExeOther);
 }
 
+void AppInstaller::syncAutoStart(bool forceEnable)
+{
+    QSettings settings("AliSakkaf", "NetGuardAIO");
+    bool enable = forceEnable || settings.value("General/RunAtStartup", true).toBool();
+
+    // ── 1. Clean ALL legacy and stale Registry startup keys ──
+    QSettings boot("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run", QSettings::NativeFormat);
+    const QStringList legacyKeys = {
+        "NetGuard", "NetGuardAIO", "UltimateNetGuard",
+        "UltimateNetGuardAIO", "Ultimate NetGuard AIO",
+        "NetGuardAutoStart", "NetGuard_AIO"
+    };
+    for (const QString &k : legacyKeys) {
+        boot.remove(k);
+    }
+
+    // ── 2. Helper to check if a path is inside Temp ──
+    auto isTemp = [](const QString &path) {
+        if (path.isEmpty()) return true;
+        QString p = QDir::toNativeSeparators(path).toLower();
+        QString temp1 = QDir::toNativeSeparators(QDir::tempPath()).toLower();
+        QString temp2 = QDir::toNativeSeparators(qEnvironmentVariable("TEMP")).toLower();
+        QString temp3 = QDir::toNativeSeparators(qEnvironmentVariable("TMP")).toLower();
+
+        if (!temp1.isEmpty() && p.startsWith(temp1)) return true;
+        if (!temp2.isEmpty() && p.startsWith(temp2)) return true;
+        if (!temp3.isEmpty() && p.startsWith(temp3)) return true;
+
+        if (p.contains("\\temp\\") || p.contains("\\tmp\\") || p.contains("\\appdata\\local\\temp")) {
+            return true;
+        }
+        return false;
+    };
+
+    // ── 3. Prioritized executable path selection ──
+    // Priority 1: Installed copy in Program Files (C:\Program Files\NetGuard\UltimateNetGuard.exe)
+    // Priority 2: Current running application file path (ONLY if NOT in Temp)
+    QString installedExe = installedExePath();
+    QString currentExe   = QCoreApplication::applicationFilePath();
+    QString targetExe;
+
+    if (QFile::exists(installedExe)) {
+        targetExe = installedExe;
+    } else if (!isTemp(currentExe) && QFile::exists(currentExe)) {
+        targetExe = currentExe;
+    }
+
+    QString nativePath = QDir::toNativeSeparators(targetExe);
+
+    // ── 4. Apply Registration or Deletion ──
+    if (enable && !nativePath.isEmpty()) {
+        boot.setValue("NetGuardAIO", "\"" + nativePath + "\" --autostart");
+
+        QStringList args;
+        args << "/create"
+             << "/tn" << "NetGuardAutoStart"
+             << "/tr" << QString("\"%1\" --autostart").arg(nativePath)
+             << "/sc" << "ONLOGON"
+             << "/rl" << "HIGHEST"
+             << "/f";
+        QProcess::execute("schtasks", args);
+    } else {
+        QStringList delArgs;
+        delArgs << "/delete" << "/tn" << "NetGuardAutoStart" << "/f";
+        QProcess::execute("schtasks", delArgs);
+    }
+}
+
+void AppInstaller::extractProfiles()
+{
+    QString baseDir = isRunningFromInstallDir() ? installDir() : QFileInfo(QCoreApplication::applicationFilePath()).absolutePath();
+    QString targetDir = baseDir + "\\Ready_JsonProfiles";
+    QDir().mkpath(targetDir);
+
+    const QStringList profiles = {
+        "Global_Workspace_Shield.json",
+        "Master_Developer_Sandbox.json",
+        "Offline_Isolation_Blacklist.json",
+        "P2P_Media_Vanguard.json",
+        "README.md",
+        "Ultimate_Esports_Nexus.json",
+        "ZeroTrust_Privacy_Citadel.json"
+    };
+
+    for (const QString &name : profiles) {
+        QString resPath = ":/Ready_JsonProfiles/" + name;
+        QString outPath = targetDir + "\\" + name;
+
+        if (QFile::exists(resPath)) {
+            if (QFile::exists(outPath)) {
+                QFile::remove(outPath);
+            }
+            QFile::copy(resPath, outPath);
+            setFullPermissions(outPath);
+        }
+    }
+}
+
 // ============================================================================
 //  run()  — called from main() before MainWindow
 // ============================================================================
 
 bool AppInstaller::run()
 {
-    // ── Already in Program Files → just make sure version.dat is current ──
+    // ── Always extract embedded Firewall JSON Profiles on launch ──
+    extractProfiles();
+
+    // ── Already in Program Files → make sure version.dat & AutoStart are updated ──
     if (isRunningFromInstallDir()) {
         writeVersionFile();
+        syncAutoStart();
         return true;                   // continue normal startup
     }
 
@@ -110,6 +213,7 @@ bool AppInstaller::run()
         QString oldVer = readInstalledVersion();
 
         if (!oldVer.isEmpty() && oldVer == APP_VERSION_STR) {
+            syncAutoStart(true);
             // Same version already installed → relaunch silently
             launchInstalledAndExit();
             return false;
@@ -271,8 +375,10 @@ bool AppInstaller::performFirstInstall()
     QCoreApplication::processEvents();
 
     // 5
-    dlg.setStep(5, 5, "Writing version data...");
+    dlg.setStep(5, 5, "Writing version data & profiles...");
     writeVersionFile();
+    extractProfiles();
+    syncAutoStart(true);
     QThread::msleep(300);
     QCoreApplication::processEvents();
 
@@ -333,6 +439,8 @@ bool AppInstaller::performUpdate(const QString &oldVersion)
     // 6
     dlg.setStep(6, 6, "Finalizing update...");
     writeVersionFile();
+    extractProfiles();
+    syncAutoStart(true);
     QThread::msleep(300);
     QCoreApplication::processEvents();
 
