@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1150</width>
-    <height>780</height>
+    <width>1085</width>
+    <height>811</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -439,24 +439,44 @@
           <property name="title">
            <string>General System Settings</string>
           </property>
-          <layout class="QVBoxLayout">
-           <property name="spacing">
-            <number>15</number>
-           </property>
-           <property name="margin" stdset="0">
-            <number>20</number>
-           </property>
-           <item>
-            <widget class="QCheckBox" name="chkRunAtStartup">
-             <property name="text">
-              <string>Start Ultimate NetGuard automatically when Windows starts (Registry)</string>
-             </property>
-            </widget>
-           </item>
-           <item>
+          <layout class="QGridLayout" name="gridLayout">
+           <item row="1" column="0">
             <widget class="QCheckBox" name="chkStartMinimized">
              <property name="text">
               <string>Launch minimized directly to System Tray</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="0">
+            <widget class="QCheckBox" name="chkRunAtStartup">
+             <property name="text">
+              <string>Start Ultimate NetGuard automatically when Windows starts (Registry &amp; Task Scheduler)</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QCheckBox" name="chkFilterVirtualAdapters">
+             <property name="text">
+              <string>Filter Virtual &amp; VPN Adapters (VMware, VirtualBox, ZeroTier, etc.)</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QPushButton" name="btnResetAllSettings">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="styleSheet">
+              <string>QPushButton { background-color: #DC2626; color: #FFFFFF; font-weight: bold; border-radius: 6px; padding: 8px 16px; min-height: 28px; } QPushButton:hover { background-color: #B91C1C; }</string>
+             </property>
+             <property name="text">
+              <string>⚠️ Reset All Settings to Defaults</string>
              </property>
             </widget>
            </item>
@@ -669,6 +689,9 @@
          <spacer>
           <property name="orientation">
            <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::Fixed</enum>
           </property>
           <property name="sizeHint" stdset="0">
            <size>
