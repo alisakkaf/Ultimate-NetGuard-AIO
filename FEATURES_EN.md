@@ -1,6 +1,6 @@
 # Ultimate NetGuard AIO — Complete Features List
 
-> **Version:** V1.2.0  
+> **Version:** V1.3.0  
 > **Author:** Ali Sakkaf  
 > **Website:** [alisakkaf.com](https://alisakkaf.com)  
 > **GitHub:** [github.com/alisakkaf](https://github.com/alisakkaf)
@@ -10,11 +10,20 @@
 ## 🌐 Module 1: Real-Time Network Traffic Monitor
 
 ### Core Capture Engine
+- **VPN & Dynamic Interface Zero-Crash Protection** — Thread-safe `m_cacheMutex` locking prevents data races when VPN tunnels connect or dynamic interfaces change, with `ERROR_BUFFER_OVERFLOW` handling and socket validation for rock-solid stability
+- **Windows Service Control Manager Integration** — Smartly distinguishes between regular `.exe` applications and Windows Services (`Service: <ServiceName>`). Provides Windows Service Control actions (**Stop Service**, **Restart Service**, **Disable Service**, **Start/Enable Service**) for services, and **Kill Process (End Task)** for regular apps
+- **Responsive Process Properties Dialog** — Multi-line text wrapping (`setWordWrap(true)`) for long process/service names and file paths, with enlarged 128x128 process icon scaling
+- **1-Click Reset All Settings to Defaults** — Dedicated button `btnResetAllSettings` in General Settings tab clears QSettings, purges registry startup keys/tasks, and restores all configurations to defaults
+- **Embedded Ready_JsonProfiles Auto-Extraction** — Compiles all 7 pre-built firewall JSON profiles directly inside `resources.qrc` and automatically extracts them to `Ready_JsonProfiles/` directory next to `UltimateNetGuard.exe` upon installation or launch
 - **Raw Socket Packet Capture** — Uses Windows `SIO_RCVALL` raw sockets for true packet-level monitoring with zero WinPcap or Npcap dependencies
+- **Multi-Socket Raw Network Capture (`Select All` Mode)** — Binds raw sockets (`s4`, `s6`) to every active local IP address on the system simultaneously for zero packet loss across all network adapters
+- **Multicast & Broadcast LAN Traffic Filter** — Smartly identifies local multicast/broadcast addresses (`224.0.0.0/4`, `239.255.255.250`, `255.255.255.255`, `ff00::/8`) to prevent local LAN bursts from inflating external upload stats
+- **100% Header & Process Table Synchronization** — Synchronizes top header cards, status bar, and Taskbar Overlay totals directly with process table totals (`getTotalRxSpeed()`, `getTotalTxSpeed()`)
 - **Dual-Stack IPv4/IPv6** — Simultaneous capture on both IPv4 and IPv6 sockets
 - **Smart Auto-Detect Network Adapter Engine** — Advanced algorithm evaluates active traffic bytes (`InOctets + OutOctets`) via `GetIfEntry2` and queries active routing tables (`GetBestInterface` for IPv4 & `GetBestRoute2` for IPv6) to auto-select the physical internet-connected adapter on startup and dynamic network changes
 - **Live Adapter Auto-Refresh** — Clicking the adapter ComboBox triggers an instant refresh to detect new Wi-Fi/Ethernet/VPN connections on the fly
-- **Virtual Adapter Filtering** — Automatically excludes virtual NICs and VPN interfaces (`VMware`, `VirtualBox`, `Radmin`, `ZeroTier`, `Hamachi`, `TAP/TUN`, `WSL`, `vEthernet`)
+- **Virtual Adapter Filtering with UI Setting Toggle** — Automatically excludes virtual NICs (`VMware`, `VirtualBox`, `Radmin`, `ZeroTier`, `Hamachi`, `TAP/TUN`, `WSL`, `vEthernet`) with a user toggle (`chkFilterVirtualAdapters`) in Settings
+- **Elevated Task Scheduler AutoStart Integration** — Native logon task (`schtasks /rl HIGHEST`) bypasses Windows UAC blocks on elevated startup with full quote-protected path handling
 - **High-Performance Threading** — Dedicated capture thread with `QThread::HighPriority` and 32MB receive buffer
 - **Batch Processing** — Packets are batched (250ms or 3000 packets) to minimize UI overhead
 - **Force-Stop Capture** — Graceful stop with 2-second timeout, falls back to forced thread termination if unresponsive
