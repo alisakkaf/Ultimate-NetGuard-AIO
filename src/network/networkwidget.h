@@ -60,6 +60,7 @@ private slots:
 public:
     QString getExactProcessPath(quint32 pid, const QString &procName);
     void selectAdapterByIPOrAuto(const QString &ipOrAuto);
+    void setFilterVirtualAdapters(bool filterVirtual);
     QList<AdapterInfo> getAdapterList() const { return m_adapters; }
 
 private:
@@ -73,6 +74,7 @@ private:
 
     QList<AdapterInfo>      m_adapters;
     bool                    m_capturing = false;
+    bool                    m_filterVirtualAdapters = true;
     quint64                 m_totalPkts = 0;
 
     QHash<QString, QIcon>   m_iconCache;
