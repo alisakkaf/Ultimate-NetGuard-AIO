@@ -212,6 +212,8 @@ void NetworkTreeModel::addPackets(const QList<CapturedPacketInfo> &batch)
 
 void NetworkTreeModel::onTick()
 {
+    quint64 modelRxSum = 0, modelTxSum = 0;
+
     for (int pRow = 0; pRow < m_procs.size(); ++pRow) {
         ProcessNode &p = m_procs[pRow];
         quint64 sumRx = 0, sumTx = 0;
@@ -231,14 +233,18 @@ void NetworkTreeModel::onTick()
         p.totalRxSpeed = sumRx;
         p.totalTxSpeed = sumTx;
 
-        // ── FIX: Emit dataChanged starting from COL_NAME to update parent UI correctly ──
-        // ── FIX: Include Qt::UserRole + 5 to keep sorting updated dynamically ──
+        modelRxSum += sumRx;
+        modelTxSum += sumTx;
+
         if (!p.conns.isEmpty()) {
             const QModelIndex pIdx = createIndex(pRow, 0, nullptr);
             emit dataChanged(index(0, COL_NAME, pIdx), index(p.conns.size()-1, COL_PKTS, pIdx), {Qt::DisplayRole, Qt::UserRole + 5});
         }
         emit dataChanged(createIndex(pRow, COL_NAME, nullptr), createIndex(pRow, COL_PKTS, nullptr), {Qt::DisplayRole, Qt::UserRole + 5});
     }
+
+    m_totalRxSpeed = modelRxSum;
+    m_totalTxSpeed = modelTxSum;
 }
 
 void NetworkTreeModel::setProcessIcon(const QString &procName, const QIcon &icon)
